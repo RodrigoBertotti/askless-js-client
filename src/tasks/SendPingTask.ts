@@ -1,0 +1,22 @@
+import {TimedTask} from "./TimedTask";
+import {PingPong} from "../middleware/data/connection/PingPong";
+import {Internal, logger} from "../index";
+import {ConnectionConfiguration} from "../middleware/data/response/ConnectionConfiguration";
+
+
+export class SendPingTask extends TimedTask{
+    constructor() {
+        super('SendPingTask', new ConnectionConfiguration().intervalInSecondsClientPing);
+    }
+
+    run(): void {
+        try{
+            if(Internal.instance.connection != "DISCONNECTED") {
+                Internal.instance.middleware?.ws?.send(JSON.stringify(new PingPong(Internal.instance.middleware.superListeningToArray)));
+            }
+        }catch (e) {
+            logger('Ping failed', "error");
+        }
+    }
+
+}

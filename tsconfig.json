@@ -1,0 +1,14 @@
+{
+  "compilerOptions": {
+    "module": "AMD",
+    "target": "ES5",
+    "declaration": true,
+    "outDir": "dist/types",
+    "moduleResolution": "node",
+    "stripInternal": true
+  },
+  "exclude": [
+    "node_modules",
+    "example"
+  ]
+}

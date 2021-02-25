@@ -1,0 +1,69 @@
+{
+  "name": "askless-js-client",
+  "version": "1.0.0",
+  "description": "JavaScript client of Askless framework, which facilitates building realtime servers for JavaScript and Flutter Apps",
+  "author": "Rodrigo João Bertotti <rodrigo@wisetap.dev>",
+  "license": "MIT",
+  "scripts": {
+    "bundle": "rimraf dist && webpack --env.development && webpack --env.production && npm run copy && npm run copy-debug && npm run copy-package-json && npm run copy-md-files && npm run copy-license && rimraf dist/types && npm run copy-eslintrc",
+    "copy": "cpx \"dist/types/**\" \"dist/askless-js-client/node\"",
+    "copy-debug": "cpx \"dist/types/**\" \"dist/askless-js-client/node-debug\" && cpx \"dist/types/**\" \"dist/askless-js-client/web-debug\"",
+    "copy-eslintrc": "cpx \".eslintrc.json\" \"dist/askless-js-client/node-debug\"  && cpx \".eslintrc.json\" \"dist/askless-js-client/node\"  && cpx \".eslintrc.json\" \"dist/askless-js-client/web-debug\"  && cpx \".eslintrc.json\" \"dist/askless-js-client/web\" ",
+    "tracking-ts": "rimraf example/tracking-tscompiled && npm run bundle && npx tsc example/tracking-ts/index.ts --outDir  example/tracking-tscompiled && node example/tracking-tscompiled/index.js",
+    "chat-js": "npm run bundle && node example/chat-js/index.js",
+    "catalog-js": "npm run bundle && node example/catalog-js/index.js",
+    "tracking-web": "npm run bundle && cd example/tracking-web/ && npm install && npm run serve",
+    "copy-package-json": "cpx \"package.json\" \"dist/askless-js-client/\"",
+    "copy-md-files": "cpx \"*.md\" \"dist/askless-js-client/\" && cpx \"documentation/*\" \"dist/askless-js-client/documentation/\"",
+    "copy-license": "cpx \"LICENSE\" \"dist/askless-js-client/\"",
+    "npm-publish-live": "npm run bundle && npm publish --access public",
+    "npm-publish-check": "npm run bundle && npm publish --access public --dry-run",
+    "prepublishOnly": "node scripts/assertCommandWasRunnedInsideDistFolder.js"
+  },
+  "keywords": [
+    "stream",
+    "framework",
+    "api",
+    "server",
+    "websocket",
+    "backend",
+    "spa"
+  ],
+  "dependencies": {
+    "bufferutil": "^4.0.2",
+    "eslint": "^7.20.0",
+    "isomorphic-ws": "^4.0.1",
+    "utf-8-validate": "^5.0.3",
+    "ws": "^7.3.1"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.11.6",
+    "@babel/plugin-syntax-flow": "^7.10.4",
+    "@babel/plugin-transform-reserved-words": "^7.10.4",
+    "@babel/plugin-transform-typescript": "^7.11.0",
+    "@babel/preset-env": "^7.11.5",
+    "@types/ws": "^7.2.7",
+    "babel-loader": "^8.1.0",
+    "babel-plugin-transform-class-properties": "^6.24.1",
+    "cpx": "^1.5.0",
+    "esmify": "^2.1.1",
+    "nodemon": "^2.0.4",
+    "rimraf": "^3.0.2",
+    "ts-loader": "^8.0.4",
+    "ts-node": "^8.10.2",
+    "typescript": "^3.9.7",
+    "webpack": "^4.44.2",
+    "webpack-cli": "^3.3.12"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/WiseTap/askless-js-client.git"
+  },
+  "bugs": {
+    "url": "https://github.com/WiseTap/askless-js-client/issues"
+  },
+  "homepage": "https://github.com/WiseTap/askless-js-client#readme",
+  "directories": {
+    "example": "example"
+  }
+}
