@@ -84,7 +84,7 @@ Exemplo:
 
 6 - Obtenha atualizações de dados em tempo real
  
-    AsklessClient.instance.listen({
+    this.listening = AsklessClient.instance.listen({
         route: 'product/tracking',
         
         listen: data => {
@@ -106,7 +106,7 @@ aplicação, neste exemplo vamos parar de receber depois de 120 segundos, mas vo
 parar de ouvir para essa rota quando o usuário mudar de tela
 
     setTimeout(() => {
-        listening.close();
+        this.listening.close();
         console.log("Stopped listening");
     }, 120 * 1000);
 
