@@ -13,6 +13,7 @@
     "chat-js": "npm run bundle && node example/chat-js/index.js",
     "catalog-js": "npm run bundle && node example/catalog-js/index.js",
     "tracking-web": "npm run bundle && cd example/tracking-web/ && npm install && npm run serve",
+    "catalog-web": "npm run bundle && cd example/catalog-web/ && npm install && npm run serve",
     "copy-package-json": "cpx \"package.json\" \"dist/askless-js-client/\"",
     "copy-md-files": "cpx \"*.md\" \"dist/askless-js-client/\" && cpx \"documentation/*\" \"dist/askless-js-client/documentation/\"",
     "copy-license": "cpx \"LICENSE\" \"dist/askless-js-client/\"",
