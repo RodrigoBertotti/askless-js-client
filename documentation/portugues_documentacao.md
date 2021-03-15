@@ -20,7 +20,7 @@ O cliente pode ser inicializado com o método `init`.
 
 #### serverUrl
 
-A url do servidor, deve ser iniciada com `ws://` ou `wss://`. Exemplo: `ws://192.168.2.3:3000`.
+A url do servidor, deve ser iniciada com `ws://` ou `wss://`. Exemplo: `ws://192.168.2.1:3000`.
 
 #### projectName
 Nome para esse projeto. Se `!= null`: o campo projectName no 
@@ -42,7 +42,7 @@ Permite criar a própria implementação do logger (opcional). Deixe `null` em u
 ##### Exemplo
 
     AsklessClient.instance.init({
-        serverUrl: 'ws://192.168.2.7:3000',
+        serverUrl: 'ws://192.168.2.1:3000',
         projectName: 'MyApp',
         logger: {
             useDefaultLogger: false,

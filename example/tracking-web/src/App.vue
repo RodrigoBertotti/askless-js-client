@@ -41,7 +41,7 @@ export default {
   },
   created() {
     AsklessClient.instance.init({
-      serverUrl: 'ws://192.168.2.4:3000',
+      serverUrl: 'ws://192.168.2.1:3000',
       projectName: 'tracking-ts',
     });
     console.log('Started');

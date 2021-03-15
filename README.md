@@ -78,7 +78,7 @@ to discover.
 Example:
 
     AsklessClient.instance.init({
-         serverUrl: 'ws://192.168.2.7:3000',
+         serverUrl: 'ws://192.168.2.1:3000',
     });
     AsklessClient.instance.connect();  
 

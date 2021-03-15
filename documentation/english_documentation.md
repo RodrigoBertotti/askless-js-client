@@ -21,7 +21,7 @@ The client can be initialized with the method `init`.
 
 #### serverUrl
 
-The URL of the server, must start with `ws://` or `wss://`. Example: `ws://192.168.2.3:3000`.
+The URL of the server, must start with `ws://` or `wss://`. Example: `ws://192.168.2.1:3000`.
 
 #### projectName
  Name for this project (optional). 
@@ -43,7 +43,7 @@ The URL of the server, must start with `ws://` or `wss://`. Example: `ws://192.1
 ##### Example
 
     AsklessClient.instance.init({
-        serverUrl: 'ws://192.168.2.7:3000',
+        serverUrl: 'ws://192.168.2.1:3000',
         projectName: 'MyApp',
         logger: {
             useDefaultLogger: false,

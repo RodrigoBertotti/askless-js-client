@@ -416,7 +416,7 @@ export class AsklessClient {
      *
      * @param params Object that hold the params of this function
      *
-     * @param params.serverUrl The URL of the server, must start with `ws://` or `wss://`. Example: `ws://192.168.2.3:3000`.
+     * @param params.serverUrl The URL of the server, must start with `ws://` or `wss://`. Example: `ws://192.168.2.1:3000`.
      *
      * @param params.logger  {@link LoggerParam Allow customize the behavior of internal logs and enable/disable the default logger (optional).}
      *
@@ -463,7 +463,7 @@ export class AsklessClient {
             throw Error("params.serverUrl must starts with ws:// or wss://");
         }
         if(params.serverUrl.includes('192.168.') && !params.serverUrl.includes(':'))
-            throw Error('Please, inform the port on the serverUrl, default is 3000, example: ws://192.168.2.3:3000');
+            throw Error('Please, inform the port on the serverUrl, default is 3000, example: ws://192.168.2.1:3000');
 
         Internal.instance.serverUrl = params.serverUrl;
         this._projectName = params.projectName;
