@@ -102,15 +102,14 @@ export class ConfigureConnectionResponseCli extends ResponseCli {
     private readonly _class_type_configureconnection = "_";
     static type = '_class_type_configureconnection';
 
-    constructor(clientRequestId: string, connectionConfiguration:ConnectionConfiguration) {
+    constructor(clientRequestId: string, connectionConfiguration:ConnectionConfiguration, err?:ResponseError) {
         super(
             clientRequestId,
             connectionConfiguration,
-            null,
+            err,
             "ConfigureConnectionResponse"
         );
     }
-
 }
 
 export class NewDataForListener {

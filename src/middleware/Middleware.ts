@@ -21,8 +21,9 @@ import {
     CLIENT_LIBRARY_VERSION_NAME,
     LISTEN_PREFIX, REQUEST_PREFIX
 } from "../constants";
-import {Utils} from "../utils";
-const assert = require("assert");
+import {assert, Utils} from "../utils";
+import {RequestType} from "./data/Types";
+import {getWS, setWS, wsSend} from "./ws";
 const WebSocket = global.WebSocket || require('isomorphic-ws');
 
 /**
@@ -117,7 +118,6 @@ export class SuperListeningTo {
 
 /** @internal */
 export class Middleware {
-    ws:WebSocket;
     private _lastPongFromServer: number;
     sendClientData: SendClientData;
     handleReceive: HandleReceive;
@@ -149,10 +149,10 @@ export class Middleware {
     }
 
     connect(ownClientId, headers): Promise<ConfigureConnectionResponseCli> {
-        return new Promise((resolve, reject) => {
+        return new Promise(async (resolve, reject) => {
             this.onReceiveConnectionConfigurationFromServer = resolve as any;
             // this.onFailToReceiveConnectionConfigurationFromServer = reject as any;
-            this.resolveConnect(ownClientId,headers);
+            await this.resolveConnect(ownClientId,headers);
         });
     }
 
@@ -191,6 +191,7 @@ export class Middleware {
         }, connectionConfiguration.intervalInSecondsClientSendSameMessage * 1000);
 
         Internal.instance.notifyConnectionChanged("CONNECTED_WITH_SUCCESS");
+        assert(getWS().readyState == 1);
     }
 
 
@@ -200,33 +201,44 @@ export class Middleware {
             this._disconnectAndClearOnDone = onDone;
         logger('disconnectAndClear');
 
-        Internal.instance.notifyConnectionChanged("DISCONNECTED");
-
         this.close();
-        this.sendClientData.clear();
+        this.sendClientData?.clear();
         this.superListeningToArray.forEach((s) => s.deleteMe());
         this.superListeningToArray.splice(0, this.superListeningToArray.length);
         this.connectionConfiguration = new ConnectionConfiguration();
     }
 
     close(): void {
-        logger('close');
+        if(!getWS() || getWS().readyState==2 || getWS().readyState==3){
+            logger('close(): Ignoring close() because readyState = '+getWS()?.readyState);
+            return;
+        }
+        logger('close started');
 
-        if (this.ws != null)
-            this.ws.close();
+        this.sendClientData?.removePendingRequest(RequestType.CONFIGURE_CONNECTION);
 
         this._lastPongFromServer = null;
-        this.ws = null;
+        if(getWS()){
+            getWS().close();
+            (async () => {
+                logger('close: waiting disconnect to finish');
+                for(let i=0; getWS()?.readyState == 2 && i<300; i++){
+                    await Utils.wait(10);
+                }
+                setWS(null);
+                logger('close: disconnect finished, ws now is null');
+            })();
+        }
     }
 
 
     confirmReceiptToServer(serverId: string): void {
         logger("confirmReceiptToServer " + serverId);
 
-        if (this.ws == null)
-            logger("this.ws==null", "error");
+        if (getWS() == null)
+            logger("getWS()==null", "error");
 
-        this.ws?.send(JSON.stringify(new ClientConfirmReceiptCli(serverId)));
+        wsSend(JSON.stringify(new ClientConfirmReceiptCli(serverId)));
     }
 
 
@@ -286,7 +298,28 @@ export class Middleware {
         }
     }
 
-    private resolveConnect(ownClientId, headers) {
+    private async resolveConnect(ownClientId, headers) {
+        this.close();
+        if(getWS()?.readyState == 2 || getWS()?.readyState == 3){ // isWebsocketConnectionBeingClose
+            logger('resolveConnect: waiting disconnect to finish');
+            const LIMIT = 300;
+            for(let i=0; getWS() != null && i<LIMIT; i++){
+                await Utils.wait(10);
+            }
+            if(getWS()) {
+                logger('resolveConnect: disconnect finished because of limit has been limitReached, continuing the resolveConnect method...', "error");
+                try{
+                    getWS().close();
+                }catch (e){
+                    logger('resolveConnect error: '+e.toString(), "error", e.stack);
+                }
+                setWS(null);
+            }else
+                logger('resolveConnect: disconnect finished (because of getWS() is null), continuing the resolveConnect method...');
+        }
+        Internal.instance.notifyConnectionChanged("CONNECTION_IN_PROGRESS");
+
+
         this._clientId = ownClientId;
         Internal.instance.disconnectionReason = null;
 
@@ -297,8 +330,6 @@ export class Middleware {
             } else
                 logger("Using the same client generated id: " + Middleware.CLIENT_GENERATED_ID);
         }
-
-        Internal.instance.notifyConnectionChanged("CONNECTION_IN_PROGRESS");
 
         if (Internal.instance.tasksStarted == false) {
             Internal.instance.tasksStarted = true;
@@ -316,12 +347,11 @@ export class Middleware {
         logger("middleware: connect");
         response = null;
 
-        this.close();
-
         let myOwnWsReference;
 
         try{
-            myOwnWsReference = this.ws = new WebSocket(this.serverUrl);
+            myOwnWsReference = new WebSocket(this.serverUrl);
+            setWS(myOwnWsReference);
         }catch (e) {
             if((e.toString() as string).includes('WebSocket is not a constructor')){
                 throw Error("Probably wrong import, try importing as \"askless-js-client/node\" instead");
@@ -329,7 +359,8 @@ export class Middleware {
             throw e;
         }
 
-        this.ws.onopen = async () => {
+
+        getWS().onopen = async () => {
             try {
                 logger("ws.on OPEN");
 
@@ -338,7 +369,6 @@ export class Middleware {
                     return;
                 }
 
-                assert(ownClientId != null);
                 assert(response == null);
                 response = await this.sendClientData.send(new ConfigureConnectionRequestCli(ownClientId, headers ?? new Map()), null);
 
@@ -347,14 +377,15 @@ export class Middleware {
                 if (response.error != null) {
                     logger("Data could not be sent, got an error", "error", response);
 
-                    Internal.instance.notifyConnectionChanged("DISCONNECTED", response.error.code == "TOKEN_INVALID" ? "TOKEN_INVALID" : null);
+                    //close and reconnect: TODO: ver em flutter se precisa ajustar
+                    setTimeout(() => this.close(), 10);
                 }
             } catch (e) {
                 logger('on open error: ' + (typeof e == 'string' ? e : JSON.stringify(e)), "error", e.stack);
             }
         };
 
-        this.ws.onmessage = async (receivedData) => {
+        getWS().onmessage = async (receivedData) => {
             try {
                 if (myOwnWsReference['invalid']) {
                     myOwnWsReference.close();
@@ -380,11 +411,11 @@ export class Middleware {
             }
         };
 
-        this.ws.onerror = async (err) => {
+        getWS().onerror = async (err) => {
             logger("middleware: channel.stream.listen onError: " + (err || 'null'), 'error', err);
         };
 
-        this.ws.onclose = async () => {
+        getWS().onclose = async () => {
             try {
                 logger("channel.stream.listen close");
 
@@ -404,7 +435,10 @@ export class Middleware {
                             ) {
                                 if (Internal.instance.disconnectionReason == null)
                                     Internal.instance.disconnectionReason = "UNDEFINED";
-                                this.resolveConnect(ownClientId, headers);
+
+                                if(Internal.instance.connection == "DISCONNECTED"){
+                                    this.resolveConnect(ownClientId, headers);
+                                }
                             }else{
                                 this.onReceiveConnectionConfigurationFromServer(Object.assign(new ConfigureConnectionResponseCli(null,null), {
                                     error: new ResponseError({

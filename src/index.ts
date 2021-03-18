@@ -11,6 +11,8 @@ import {ListenCli, ReadCli} from "./middleware/data/request/RequestCli";
 import {CreateCli, DeleteCli, UpdateCli} from "./middleware/data/request/OperationRequestCli";
 import {ConnectionConfiguration} from "./middleware/data/response/ConnectionConfiguration";
 import {CLIENT_GENERATED_ID_PREFIX} from "./constants";
+import {Utils} from "./utils";
+import {getWS} from "./middleware/ws";
 
 
 export type DisconnectionReason =  'TOKEN_INVALID' | 'UNDEFINED' | 'DISCONNECTED_BY_CLIENT' | 'VERSION_CODE_NOT_SUPPORTED' | 'WRONG_PROJECT_NAME';
@@ -184,6 +186,20 @@ export class AsklessClient {
 
         if (params && params.ownClientId && params.ownClientId.toString().startsWith(CLIENT_GENERATED_ID_PREFIX)) //Vai que o usuário insira um id manualmente desse tipo
             throw Error("ownClientId invalid: "+params.ownClientId);
+
+        if(getWS()?.readyState==0 || Internal.instance.connection == "CONNECTION_IN_PROGRESS"){
+            return new ConfigureConnectionResponseCli(
+                null,
+                null,
+                new ResponseError(
+                    {
+                        code: "LAST_CONNECTION_ATTEMPT_IS_STILL_IN_PROGRESS",
+                        description: "The connection attempt failed because the last connection attempt is still in progress",
+                        stack: null
+                    }
+                )
+            );
+        }
 
         logger("connecting...", );
 

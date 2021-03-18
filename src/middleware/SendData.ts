@@ -2,6 +2,9 @@ import {Middleware} from "./Middleware";
 import {ResponseError, ResponseCli} from "./data/response/ResponseCli";
 import {AbstractRequestCli, ListenCli} from "./data/request/RequestCli";
 import {Internal, logger} from "../index";
+import {RequestType} from "./data/Types";
+import {assert, Utils} from "../utils";
+import {wsSend} from "./ws";
 
 export type OnResponseCallback = (response:ResponseCli) => void;
 export type SendDataListener = (data:AbstractRequestCli) => void;
@@ -22,19 +25,21 @@ export class SendClientData {
     }
 
     clear(): void {
-        this._pendingRequestsList = [];
+        this.removePendingRequest();
     }
 
-    notifyServerResponse(response: ResponseCli): void {
+    notifyServerResponse(response: ResponseCli): boolean {
         const req = this._pendingRequestsList.find((p) => p.data.clientRequestId == response.clientRequestId,);
         if (req != null) {
             req.onResponse(response);
             logger("Response "+response.clientRequestId+" received and removed from the _pendingRequestsList");
             this._pendingRequestsList.splice(this._pendingRequestsList.indexOf(req), 1);
+            return true;
         } else {
             // console.log(JSON.parse(JSON.stringify(this._pendingRequestsList)));
             // console.log('(response.clientRequestId -> '+response.clientRequestId);
             logger("Response received: "+response.clientRequestId+", but did nothing, probably because the request timed out before");
+            return false;
         }
     }
 
@@ -58,7 +63,7 @@ export class SendClientData {
                 const send = copy[i].data;
                 logger('Sending to Server again the message...', "debug");
                 try{
-                    this.middleware.ws?.send(JSON.stringify(send));
+                    wsSend(JSON.stringify(send));
                 }catch (e) {
                     if(e.toString().includes('WebSocket is not open') || e.toString().includes('Still in CONNECTING state')){
                          logger('Could not send the message because websocket connection is not performed yet', "error", e);
@@ -74,13 +79,13 @@ export class SendClientData {
         if (neverTimeout == null)
             neverTimeout = false;
 
-        return new Promise((resolve, reject) => {
+        return new Promise(async (resolve, reject) => {
             const json = JSON.stringify(data);
             logger('Sending to Server...', "debug", data);
 
             if(Internal.instance.connection != "DISCONNECTED"){
                 try {
-                    this.middleware.ws?.send(json);
+                    wsSend(json);
                 }catch (e) {
                     if(e.toString().includes('WebSocket is not open') || e.toString().includes('Still in CONNECTING state')){
                         logger('Could not send the message because the websocket connection is not performed yet', "error", e);
@@ -142,5 +147,18 @@ export class SendClientData {
                 }
             }
         });
+    }
+
+    removePendingRequest(removeWhereRequestType?:RequestType) {
+        let shouldBeLessThan;
+        if(removeWhereRequestType && this._pendingRequestsList.length>0){
+            shouldBeLessThan = this._pendingRequestsList.length;
+        }
+        if(removeWhereRequestType)
+            this._pendingRequestsList = this._pendingRequestsList.filter((req) => req.data.requestType != removeWhereRequestType);
+        else
+            this._pendingRequestsList = [];
+
+        assert(shouldBeLessThan==null || this._pendingRequestsList.length < shouldBeLessThan);
     }
 }

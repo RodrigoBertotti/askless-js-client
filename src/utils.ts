@@ -1,8 +1,9 @@
 import {CLIENT_GENERATED_ID_PREFIX} from "./constants";
+import {environment} from "./index";
 
 export function assert(expression){
-    if(!expression){
-        throw Error('assert failed');
+    if(environment == "development") {
+        require('assert')(expression);
     }
 }
 
@@ -46,11 +47,6 @@ export class Utils {
         return clientId.toString().startsWith(CLIENT_GENERATED_ID_PREFIX)
             ? null
             : clientId;
-    }
-
-    static async delay(time: number) {
-        //https://stackoverflow.com/a/951057/4508758
-        return new Promise((resolve) => setTimeout(resolve, time));
     }
 
     static isJson(obj): boolean {

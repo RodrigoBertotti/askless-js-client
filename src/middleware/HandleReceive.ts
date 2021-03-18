@@ -19,7 +19,7 @@ export class HandleReceive {
 
     constructor(public readonly middleware:Middleware, public readonly onReceiveConnectionConfigurationFromServer:(connectionConfiguration:ConfigureConnectionResponseCli) => void) {}
 
-    handle(messageMap){
+    handle(messageMap) : void {
         if(messageMap.serverId == null){
             throw new Error('Unknown: '+messageMap);
         }
@@ -64,7 +64,11 @@ export class HandleReceive {
         else if(messageMap[ConfigureConnectionResponseCli.type] != null) {
             const serverConnectionReadyCli:ConfigureConnectionResponseCli = Object.assign(new ConfigureConnectionResponseCli(null,null), messageMap);
             const connectionConfiguration = serverConnectionReadyCli.output as ConnectionConfiguration;
-            this.middleware.sendClientData.notifyServerResponse(serverConnectionReadyCli);
+            const notifyServerResponseResult = this.middleware.sendClientData.notifyServerResponse(serverConnectionReadyCli);
+            if(!notifyServerResponseResult){
+                logger("notifyServerResponseResult is false, ignoring ConfigureConnectionResponseCli");
+                return;
+            }
             this.onReceiveConnectionConfigurationFromServer(serverConnectionReadyCli);
             this.middleware.connectionReady(serverConnectionReadyCli.output as ConnectionConfiguration, serverConnectionReadyCli.error, );
 
