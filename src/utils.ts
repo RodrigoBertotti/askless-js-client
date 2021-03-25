@@ -1,9 +1,9 @@
 import {CLIENT_GENERATED_ID_PREFIX} from "./constants";
 import {environment} from "./index";
 
-export function assert(expression){
+export function assert(expression, text?:string){
     if(environment == "development") {
-        require('assert')(expression);
+        require('assert')(expression, text);
     }
 }
 

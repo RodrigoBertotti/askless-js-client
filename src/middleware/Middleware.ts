@@ -180,7 +180,7 @@ export class Middleware {
         if (AsklessClient.instance.projectName != null && connectionConfiguration.projectName != null && AsklessClient.instance.projectName != connectionConfiguration.projectName) {
             this.disconnectAndClear();
             Internal.instance.disconnectionReason = "WRONG_PROJECT_NAME";
-            throw Error("Looks like you are not running the right server (" + connectionConfiguration.projectName + ") to your Flutter Client project (" + AsklessClient.instance.projectName + ")");
+            throw Error("Looks like you are not running the right server (" + connectionConfiguration.projectName + ") to your Flutter JavaScript project (" + AsklessClient.instance.projectName + ")");
         }
 
         Internal.instance.sendPingTask.changeInterval(connectionConfiguration.intervalInSecondsClientPing);

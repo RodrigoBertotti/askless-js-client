@@ -17,9 +17,9 @@ export const wsSend = async (json:string) => {
         logger('ignoring sending message, because websocket is null', "error");
         return;
     }
-    for(let i=0;getWS()?.readyState == 0 && i<300; i++){  //<-- TODO: analisar se é necessário fazer no cliente em flutter (clicar em reconectar com a mesma conexão várias vezes)
-        logger('waiting websocket connection to be established');
-        await Utils.wait(10); //TODO: improve this solution
+    for(let i=0;getWS()?.readyState == 0 && i<15; i++){  //<-- TODO: analisar se é necessário fazer no cliente em flutter (clicar em reconectar com a mesma conexão várias vezes)
+        logger('waiting websocket connection to be with readyState != 0');
+        await Utils.wait(200); //TODO: improve this solution
     }
     if(_ws?.readyState!=1){
         logger('ignoring sending message, because websocket readyState is '+_ws?.readyState, "error");

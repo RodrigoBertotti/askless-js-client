@@ -159,6 +159,8 @@ export class SendClientData {
         else
             this._pendingRequestsList = [];
 
-        assert(shouldBeLessThan==null || this._pendingRequestsList.length < shouldBeLessThan);
+        if(shouldBeLessThan!=null && this._pendingRequestsList.length >= shouldBeLessThan){
+            logger( 'shouldBeLessThan: '+shouldBeLessThan+ ' _pendingRequestsList.length='+this._pendingRequestsList.length, "error")
+        }
     }
 }

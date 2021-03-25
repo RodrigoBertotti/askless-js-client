@@ -15,7 +15,7 @@
 </template>
 
 <script>
-import { AsklessClient} from "../../../../dist/askless-js-client/web";
+import { AsklessClient} from "../../../../dist/askless-js-client/web-debug";
 
 export default {
   name: 'Connection',
