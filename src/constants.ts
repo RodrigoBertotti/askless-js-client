@@ -14,5 +14,5 @@ export const LISTEN_PREFIX = 'LIS-';
 export const CLIENT_GENERATED_ID_PREFIX = 'CLIENT_GENERATED_ID-';
 
 //TODO onupdate:
-export const CLIENT_LIBRARY_VERSION_NAME = '1.0.0';
-export const CLIENT_LIBRARY_VERSION_CODE = 1;
+export const CLIENT_LIBRARY_VERSION_NAME = '1.0.1';
+export const CLIENT_LIBRARY_VERSION_CODE = 2;

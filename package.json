@@ -1,11 +1,11 @@
 {
   "name": "askless-js-client",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "JavaScript client of Askless framework, which facilitates building realtime servers for JavaScript and Flutter Apps",
   "author": "Rodrigo João Bertotti <rodrigo@wisetap.dev>",
   "license": "MIT",
   "scripts": {
-    "bundle": "rimraf dist && webpack --env.development && webpack --env.production && npm run copy && npm run copy-debug && npm run copy-package-json && npm run copy-md-files && npm run copy-license && rimraf dist/types && npm run copy-eslintrc",
+    "bundle": "rimraf dist && webpack --env.development && webpack --env.production && npm run copy && npm run copy-debug && npm run copy-package-json && npm run copy-md-files && npm run copy-license && rimraf dist/types && npm run copy-eslintrc && npm run copy-scripts",
     "copy": "cpx \"dist/types/**\" \"dist/askless-js-client/node\"",
     "copy-debug": "cpx \"dist/types/**\" \"dist/askless-js-client/node-debug\" && cpx \"dist/types/**\" \"dist/askless-js-client/web-debug\"",
     "copy-eslintrc": "cpx \".eslintrc.json\" \"dist/askless-js-client/node-debug\"  && cpx \".eslintrc.json\" \"dist/askless-js-client/node\"  && cpx \".eslintrc.json\" \"dist/askless-js-client/web-debug\"  && cpx \".eslintrc.json\" \"dist/askless-js-client/web\" ",
@@ -17,8 +17,9 @@
     "copy-package-json": "cpx \"package.json\" \"dist/askless-js-client/\"",
     "copy-md-files": "cpx \"*.md\" \"dist/askless-js-client/\" && cpx \"documentation/*\" \"dist/askless-js-client/documentation/\"",
     "copy-license": "cpx \"LICENSE\" \"dist/askless-js-client/\"",
-    "npm-publish-live": "npm run bundle && npm publish --access public",
-    "npm-publish-check": "npm run bundle && npm publish --access public --dry-run",
+    "copy-scripts": "cpx \"scripts/*\" \"dist/askless-js-client/scripts/\"",
+    "npm-publish-live":  "node scripts/assertCommandWasRunnedInsideDistFolder.js && npm publish --access public",
+    "npm-publish-check": "node scripts/assertCommandWasRunnedInsideDistFolder.js && npm publish --access public --dry-run",
     "prepublishOnly": "node scripts/assertCommandWasRunnedInsideDistFolder.js"
   },
   "keywords": [
