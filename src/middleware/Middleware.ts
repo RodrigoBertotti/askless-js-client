@@ -195,40 +195,40 @@ export class Middleware {
     }
 
 
-    /** Só chamar esse método quando o usuário mesmo desconectar */
     disconnectAndClear(onDone?: VoidFunction): void {
         if (onDone != null)
             this._disconnectAndClearOnDone = onDone;
         logger('disconnectAndClear');
 
-        this.close();
+        this.close(true);
         this.sendClientData?.clear();
         this.superListeningToArray.forEach((s) => s.deleteMe());
         this.superListeningToArray.splice(0, this.superListeningToArray.length);
         this.connectionConfiguration = new ConnectionConfiguration();
     }
 
-    close(): void {
-        if(!getWS() || getWS().readyState==2 || getWS().readyState==3){
-            logger('close(): Ignoring close() because readyState = '+getWS()?.readyState);
+    close(doNotReconnect?:boolean): void {
+        // Internal.instance.notifyConnectionChanged("DISCONNECTED", disconnectionReason || Internal.instance.disconnectionReason);
+
+        const ws = getWS();
+        if(!ws || ws.readyState==2 || ws.readyState==3){
+            logger('close(): Ignoring close() because readyState = '+ws?.readyState);
             return;
         }
         logger('close started');
 
+        if(doNotReconnect){
+            ws['__do_not_reconnect__'] = true;
+        }
+
+        if(ws){
+            ws.close();
+            setWS(null);
+        }
+
         this.sendClientData?.removePendingRequest(RequestType.CONFIGURE_CONNECTION);
 
         this._lastPongFromServer = null;
-        if(getWS()){
-            getWS().close();
-            (async () => {
-                logger('close: waiting disconnect to finish');
-                for(let i=0; getWS()?.readyState == 2 && i<300; i++){
-                    await Utils.wait(10);
-                }
-                setWS(null);
-                logger('close: disconnect finished, ws now is null');
-            })();
-        }
     }
 
 
@@ -299,7 +299,7 @@ export class Middleware {
     }
 
     private async resolveConnect(ownClientId, headers) {
-        this.close();
+        this.close(true);
         if(getWS()?.readyState == 2 || getWS()?.readyState == 3){ // isWebsocketConnectionBeingClose
             logger('resolveConnect: waiting disconnect to finish');
             const LIMIT = 300;
@@ -351,6 +351,7 @@ export class Middleware {
 
         try{
             myOwnWsReference = new WebSocket(this.serverUrl);
+            myOwnWsReference['__id__'] = Utils.makeId(11);
             setWS(myOwnWsReference);
         }catch (e) {
             if((e.toString() as string).includes('WebSocket is not a constructor')){
@@ -360,11 +361,18 @@ export class Middleware {
         }
 
 
+        function updateDisconnectionReason(error: ResponseError) {
+            if(error?.code == "TOKEN_INVALID")
+                Internal.instance.disconnectionReason = "TOKEN_INVALID";
+            else
+                Internal.instance.disconnectionReason = "UNDEFINED";
+        }
+
         getWS().onopen = async () => {
             try {
                 logger("ws.on OPEN");
 
-                if (myOwnWsReference['invalid']) {
+                if (myOwnWsReference['__invalid__']) {
                     myOwnWsReference.close();
                     return;
                 }
@@ -377,7 +385,9 @@ export class Middleware {
                 if (response.error != null) {
                     logger("Data could not be sent, got an error", "error", response);
 
-                    //close and reconnect: TODO: ver em flutter se precisa ajustar
+                    updateDisconnectionReason(response.error);
+
+                    //close and reconnect:
                     setTimeout(() => this.close(), 10);
                 }
             } catch (e) {
@@ -387,7 +397,7 @@ export class Middleware {
 
         getWS().onmessage = async (receivedData) => {
             try {
-                if (myOwnWsReference['invalid']) {
+                if (myOwnWsReference['__invalid__']) {
                     myOwnWsReference.close();
                     console.log("-----------------------------------------------------------------------");
                     console.log("--------------------- ENTROU NO on message INVALID --------------------");
@@ -419,10 +429,14 @@ export class Middleware {
             try {
                 logger("channel.stream.listen close");
 
-                Internal.instance.notifyConnectionChanged("DISCONNECTED");
+                if(!getWS() || getWS()['__id__']==null || myOwnWsReference['__id__'] == getWS()['__id__']){
+                    Internal.instance.notifyConnectionChanged("DISCONNECTED");
+                }
 
-                if (!myOwnWsReference['invalid']) {
-                    myOwnWsReference['invalid'] = true;
+                updateDisconnectionReason(response?.error);
+
+                if (!myOwnWsReference['__invalid__']) {
+                    myOwnWsReference['__invalid__'] = true;
                     setTimeout(() => {
                         if (Internal.instance.connection === "DISCONNECTED") {
                             this._disconnectAndClearOnDone();
@@ -437,16 +451,18 @@ export class Middleware {
                                     Internal.instance.disconnectionReason = "UNDEFINED";
 
                                 if(Internal.instance.connection == "DISCONNECTED"){
-                                    this.resolveConnect(ownClientId, headers);
+                                    if(!myOwnWsReference['__do_not_reconnect__']){
+                                        this.resolveConnect(ownClientId, headers);
+                                    }
                                 }
-                            }else{
+                            }
+                            else{
                                 this.onReceiveConnectionConfigurationFromServer(Object.assign(new ConfigureConnectionResponseCli(null,null), {
                                     error: new ResponseError({
-                                        code: "TOKEN_INVALID",
+                                        code: Internal.instance.disconnectionReason,
                                         description: 'function grantConnection (server side) didn\'t allow the connection',
                                     })
                                 }))
-                                // this.onFailToReceiveConnectionConfigurationFromServer(Internal.instance.disconnectionReason);
                             }
                         }
                     }, 2000);

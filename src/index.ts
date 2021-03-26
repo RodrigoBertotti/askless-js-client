@@ -210,7 +210,7 @@ export class AsklessClient {
             this._disconnectAndClearByClient();
             Internal.instance.middleware = new Middleware(this.serverUrl);
         }else{
-            Internal.instance.middleware.close();
+            Internal.instance.middleware.close(true);
         }
         this._ownClientId = params.ownClientId;
         this._headers = params.headers || {};

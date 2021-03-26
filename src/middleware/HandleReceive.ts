@@ -49,7 +49,7 @@ export class HandleReceive {
             const remove = Array<LastServerMessage>();
             for(let i=this.lastMessagesFromServer.length-1; i>=0 || remove.length>=10; i--){
                 const messageReceivedFromServer = this.lastMessagesFromServer[i];
-                if(messageReceivedFromServer.messageReceivedAtSinceEpoch + 10 * 60 * 1000 < NOW) //keep received message for 10 minutes
+                if(messageReceivedFromServer == null || messageReceivedFromServer.messageReceivedAtSinceEpoch + 10 * 60 * 1000 < NOW) //keep received message for 10 minutes
                     remove.push(messageReceivedFromServer);
             }
             remove.forEach((element) => this.lastMessagesFromServer.splice(this.lastMessagesFromServer.indexOf(element), 1));

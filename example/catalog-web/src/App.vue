@@ -76,7 +76,7 @@ export default {
   },
   created() {
     AsklessClient.instance.init({
-      serverUrl: 'ws://192.168.2.3:3000',
+      serverUrl: 'ws://192.168.2.1:3000',
       projectName: 'catalog',
       logger: {
         useDefaultLogger: true
