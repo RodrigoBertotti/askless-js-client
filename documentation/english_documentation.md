@@ -8,8 +8,8 @@ the server side in Node.js.
 
 
  ## Important links
- *  [Getting Started](../README.md): Regarding to the JavaScript Client.
- *  [Getting Started (server)](https://github.com/WiseTap/askless): Regarding to the server in Node.js.
+ *  [Getting Started](../README.md): Regard to the JavaScript Client.
+ *  [Getting Started (server)](https://github.com/WiseTap/askless): Askless back-end server in Node.js.
  *  [chat (example)](../example/chat-js/index.js): Chat between the colors blue and green.
  *  [catalog (example)](../example/catalog-js/index.js): Users adding and removing products from a catalog.
 
@@ -24,12 +24,12 @@ The client can be initialized with the method `init`.
 The URL of the server, must start with `ws://` or `wss://`. Example: `ws://192.168.2.1:3000`.
 
 #### projectName
- Name for this project (optional). 
+ Name for this project. 
  If `!= null`: the field `projectName` on server side must have the same name (optional).
 
 #### logger
 
- Allow customize the behavior of internal logs and enable/disable the default logger (optional).
+ Allow to customize the behavior of internal logs and enable/disable the default logger (optional).
 
 #####  Params:
   
@@ -60,7 +60,7 @@ The URL of the server, must start with `ws://` or `wss://`. Example: `ws://192.1
 
 ## `connect(...)`- Connecting to the server
 
-Try perform a connection with the server.
+Try to perform a connection with the server.
 
 In the server side, you can implement [grantConnection](https://github.com/WiseTap/askless/blob/master/documentation/english_documentation.md#grantconnection)
 to accept or deny connections attempts from the client.
@@ -76,7 +76,7 @@ otherwise must be `null` (optional).
 
 #### `headers`
 Allows informing the token of the respective `ownClientId` (and/or additional data)
-so that the server can be able to accept or recuse the connection attempt (optional).
+so that the server can be able to accept or deny the connection attempt (optional).
 
 ### Example
 
@@ -92,7 +92,7 @@ so that the server can be able to accept or recuse the connection attempt (optio
 ### Accepting or rejecting a connection attempt
 
 On the server side, you can implement [grantConnection](https://github.com/WiseTap/askless/blob/master/documentation/english_documentation.md#grantconnection)
-to accept or refuse connection attempts from the client.
+to accept or deny connection attempts from the client.
 
 #### Best practices
 
@@ -109,7 +109,7 @@ and password in the `header` field of the `connect` method:
         }
     });
     
-But in this way the user would have to keep informing the e-mail and
+The problem of using this way is that the user would have to keep informing the e-mail and
 password every time that he wants to access the application.
 
 To avoid this, is **recommended** the creation of a route that allows 
@@ -163,6 +163,19 @@ therefore, is recommended that the initialization occur on `main.dart`.
 
 `connect` can be called multiple times, 
 since the user can do login and logout.
+
+| Where                                                                                                              |     `connect`      |       `init`       |
+| -----------------------------------------------------------------------------------------------------------------: |:------------------:|:------------------:|
+| main.dart                                                                                                          | :heavy_check_mark: | :heavy_check_mark: |
+| When the user do login                                                                                             | :heavy_check_mark: | :x:                |
+| After a disconnect (example: user did logout) *                                                                    | :heavy_check_mark: | :x:                |
+| override `build` of a widget                                                                                       | :x:                | :x:                |
+| override `init` of a shared widget                                                                                 | :x:                | :x:                |
+| override `init` of a widget that appears **only once**, when the App starts (e.g. in a `loading_app.dart` file)    | :heavy_check_mark: | :heavy_check_mark: |
+
+\* After a logout, it may be necessary for the user to read data from server,
+therefore, even after a logout can be done a `connect` with  
+`ownClientId` being `null`.
 
 ## `reconnect()` - Reconnecting
 Reconnects to the server using the same credentials
@@ -382,7 +395,7 @@ The response of an operation in the server.
  Is the response error in case where `isSuccess() == false`.
  
 ## `Listening`
- Listening for new data from the server after call the method `listen`.
+ Listening for new data from the server. Is the return of the [listen](#listen) method.
 
 ## Fields
 

@@ -35,7 +35,7 @@ function _getDefaultLogger (message:string, level?:Level, additionalData?:any)  
 export const environment : 'production' | 'development' = process.env.ENV as any;
 
 /**
- * Allow customize the behavior of internal logs and enable/disable the default logger (optional).
+ * Allow to customize the behavior of internal logs and enable/disable the default logger (optional).
  *
  * @param useDefaultLogger If `true`: the default logger will be used (optional). Set to `false` on a production environment. Default: `false`
  *
@@ -147,7 +147,7 @@ export class AsklessClient {
 
 
     /**
-     *  Try perform a connection with the server.
+     *  Try to perform a connection with the server.
      *
      *  @param params Object that hold the params of this function
      *
@@ -156,7 +156,7 @@ export class AsklessClient {
      *  otherwise must be `null` (optional).
      *
      *  @param params.headers: Allows informing the token of the respective `ownClientId` (and/or additional data)
-     *  so that the server can be able to accept or recuse the connection attempt (optional).
+     *  so that the server can be able to accept or deny the connection attempt (optional).
      *
      *  In the server side, you can implement [grantConnection](https://github.com/WiseTap/askless/blob/master/documentation/english_documentation.md#grantconnection)
      *  to accept or deny connections attempts from the client.
@@ -434,7 +434,7 @@ export class AsklessClient {
      *
      * @param params.serverUrl The URL of the server, must start with `ws://` or `wss://`. Example: `ws://192.168.2.1:3000`.
      *
-     * @param params.logger  {@link LoggerParam Allow customize the behavior of internal logs and enable/disable the default logger (optional).}
+     * @param params.logger  {@link LoggerParam Allow to customize the behavior of internal logs and enable/disable the default logger (optional).}
      *
      * @param params.projectName Name for this project (optional).
      * If `!= null`: the field {@link projectName} on server side must have the same name (optional).
@@ -458,7 +458,7 @@ export class AsklessClient {
      *
     */
     init(params:{serverUrl:string, logger?:LoggerParam, projectName?:string}):void {
-        const defaultLogger = params.logger?.useDefaultLogger || (params.logger?.useDefaultLogger != false && environment=="development") ? _getDefaultLogger : null;
+        const defaultLogger = params.logger?.useDefaultLogger ? _getDefaultLogger : null;
         Internal.instance.logger = (message:string, level:Level, additionalData) =>  {
             if(!level)
                 level = "debug";

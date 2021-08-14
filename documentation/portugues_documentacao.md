@@ -162,9 +162,22 @@ Onde pode ser chamado `init` e `connect`?
 `connect` 
  pode ser chamado várias vezes, visto que o usuário pode fazer login e logout.
 
+| Local                                                                                                                                               |     `connect`      |       `init`       |
+| --------------------------------------------------------------------------------------------------------------------------------------------------: |:------------------:|:------------------:|
+| main.dart                                                                                                                                           | :heavy_check_mark: | :heavy_check_mark: |
+| Quando o usuário faz login                                                                                                                          | :heavy_check_mark: | :x:                |
+| Após um disconnect (exemplo: usuário fez logout) *                                                                                                  | :heavy_check_mark: | :x:                |
+| override `build` de um widget                                                                                                                       | :x:                | :x:                |
+| override `init` de um widget qualquer compartilhado                                                                                                 | :x:                | :x:                |
+| override `init` de um widget que aparece apenas **uma única vez**, quando o App é aberto  (exemplo: em um arquivo `carregando_app.dart`)            | :heavy_check_mark: | :heavy_check_mark: |
+
+\* Após um logout, pode ser necessário que o usuário leia dados do servidor,
+por isso, mesmo após logout pode ser feito um `connect` com
+`ownClientId` sendo `null`.
+
 ## `reconnect()` - Reconectando
 Reconecta com o servidor utilizando as mesmas credenciais da conexão
-anterior informados em `connect`.
+anteriores informadas em `connect`.
 
 Retorna o resultado da tentativa de reconexão.
  
@@ -364,17 +377,18 @@ A resposta para uma operação no servidor.
 
  Não use esse campo para verificar se houve um erro
  (pois pode ser null mesmo em caso de sucesso),
- em vez disso use  `isSuccess()`.
+ em vez disso use `isSuccess()`.
 
   
 #### `isSuccess()`  
-Retorna  `true` se a resposta é um sucesso
+Retorna `true` se a resposta é um sucesso
 
 #### `error`  
  Se `isSuccess() == false`: contém o erro da resposta
  
 ## `Listening`
-Observando dados do servidor após chamar `listen`.
+Observando novos dados a serem recebidos do servidor.
+É o retorno do método [listen](#listen).
 
 ## Campos
 

@@ -13,9 +13,11 @@ Framework que facilita criar servidores para aplicativos em Flutter e JavaScript
     - :arrow_right_hook: realiza o reenvio de dados em caso de instabilidade
     da conexão do cliente
 
-- :pencil2: criar as próprias operações CRUD com o banco de dados que preferir (**C**reate, **R**ead, **U**pdate e **D**elete)
+    - :label: trata múltiplas e idênticas requisições de `listen` vindas do mesmo cliente como uma só pelo servidor
 
-- :no_entry: restringir acesso do cliente com as operações CRUD
+- :pencil2: criar as próprias operações CRUD com qualquer banco de dados que você preferir (**C**reate, **R**ead, **U**pdate e **D**elete)
+
+- :no_entry: restringir o acesso do cliente com as operações CRUD
 
 - :mega: notificar em tempo real clientes que estão ouvindo por mudanças de uma rota, podendo ser:
     
