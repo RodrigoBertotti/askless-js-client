@@ -1,5 +1,4 @@
 import {setInterval} from "timers";
-import {logger} from "../index";
 
 
 export abstract class TimedTask {
@@ -10,7 +9,7 @@ export abstract class TimedTask {
             throw new Error("_intervalInSeconds is null/zero");
     }
 
-    getIntervalInSeconds() {
+    get intervalInSeconds() : number {
        return this._intervalInSeconds;
     }
 

@@ -1,18 +1,21 @@
-// Debug only:
-// const askless = require("../../dist/askless-js-client/node-debug");
+// Import Askless:
+//-> Node App:
+//   import { AsklessClient } from "askless-js-client/node";
+//      OR
+//   const AsklessClient = require("askless-js-client/node").AsklessClient;
+//-> Web App:
+//   import { AsklessClient } from "askless-js-client/web";
+//      OR
+//   const AsklessClient = require("askless-js-client/web").AsklessClient;
+const AsklessClient = require("../../dist/askless-js-client/node-debug").AsklessClient;
 
-// Recommended:
-const askless = require("../../dist/askless-js-client/node");
+const asklessClient = new AsklessClient();
 
-const AsklessClient = askless.AsklessClient;
-
-
-AsklessClient.instance.init({
+asklessClient.init({
     serverUrl: 'ws://192.168.2.1:3000',
     projectName: 'catalog',
 });
 console.log('Started');
-
 
 
 /// TODO: Run example by uncommenting theses lines of code:
@@ -21,7 +24,7 @@ console.log('Started');
 test3AsAdminPermission();
 
 function connectAdmin() {
-    return AsklessClient.instance.connect({
+    return asklessClient.connect({
         ownClientId: 1,
         headers: {
             'Authorization': 'Bearer abcd'
@@ -29,7 +32,7 @@ function connectAdmin() {
     });
 }
 function connectInvalidToken() {
-    return AsklessClient.instance.connect({
+    return asklessClient.connect({
         ownClientId: 1,
         headers: {
             'Authorization': 'Bearer wrong'
@@ -37,11 +40,11 @@ function connectInvalidToken() {
     });
 }
 function connectViewOnly() {
-    return AsklessClient.instance.connect();
+    return asklessClient.connect();
 }
 
 function addProduct(name, price) {
-    return AsklessClient.instance.create({
+    return asklessClient.create({
         route: 'product',
         body: {
             name: name,
@@ -50,7 +53,7 @@ function addProduct(name, price) {
     });
 }
 function listenToProducts(search) {
-    return AsklessClient.instance.listen({
+    return asklessClient.listen({
         route: 'product/all',
         query: {
             search: search
@@ -62,7 +65,7 @@ function listenToProducts(search) {
     });
 }
 function deleteProduct(id) {
-    return AsklessClient.instance.delete({
+    return asklessClient.delete({
         route: 'product',
         query: {
             id: id

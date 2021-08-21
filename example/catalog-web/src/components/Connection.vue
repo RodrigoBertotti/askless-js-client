@@ -15,7 +15,8 @@
 </template>
 
 <script>
-import { AsklessClient} from "../../../../dist/askless-js-client/web-debug";
+
+import {asklessClient} from "@/AsklessClient";
 
 export default {
   name: 'Connection',
@@ -56,7 +57,7 @@ export default {
   },
 
   created() {
-    AsklessClient.instance.addOnConnectionChange({
+    asklessClient.addOnConnectionChange({
           listener: (connectionStatus) => {
             this.connectionStatus = connectionStatus;
           }

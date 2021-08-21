@@ -5,7 +5,7 @@ import {
     ResponseCli,
     ServerConfirmReceiptCli
 } from "./data/response/ResponseCli";
-import {logger, AsklessClient} from "../index";
+import {AsklessClient} from "../index";
 import {ConnectionConfiguration} from "./data/response/ConnectionConfiguration";
 
 export class LastServerMessage {
@@ -18,6 +18,8 @@ export class HandleReceive {
     readonly lastMessagesFromServer: Array<LastServerMessage> = [];
 
     constructor(public readonly middleware:Middleware, public readonly onReceiveConnectionConfigurationFromServer:(connectionConfiguration:ConfigureConnectionResponseCli) => void) {}
+
+    get logger () { return this.middleware.logger; }
 
     handle(messageMap) : void {
         if(messageMap.serverId == null){
@@ -35,7 +37,7 @@ export class HandleReceive {
 
         const dataAlreadySentByServerBefore = this.lastMessagesFromServer.find((m) => m.serverId == serverId);
         if(dataAlreadySentByServerBefore != null){
-            logger("handle, data already received: " + serverId);
+            this.logger("handle, data already received: " + serverId);
             dataAlreadySentByServerBefore.messageReceivedAtSinceEpoch = Date.now();
             return;
         }
@@ -45,7 +47,7 @@ export class HandleReceive {
         //Removing unnecessary info's
         const NOW = Date.now();
         if(this.lastMessagesFromServer.length > 100){
-            logger("Start of removing unnecessary info's... ("+(this.lastMessagesFromServer.length.toString())+")");
+            this.logger("Start of removing unnecessary info's... ("+(this.lastMessagesFromServer.length.toString())+")");
             const remove = Array<LastServerMessage>();
             for(let i=this.lastMessagesFromServer.length-1; i>=0 || remove.length>=10; i--){
                 const messageReceivedFromServer = this.lastMessagesFromServer[i];
@@ -53,7 +55,7 @@ export class HandleReceive {
                     remove.push(messageReceivedFromServer);
             }
             remove.forEach((element) => this.lastMessagesFromServer.splice(this.lastMessagesFromServer.indexOf(element), 1));
-            logger("End of removing unnecessary info's... ("+(this.lastMessagesFromServer.length.toString())+")");
+            this.logger("End of removing unnecessary info's... ("+(this.lastMessagesFromServer.length.toString())+")");
         }
 
 
@@ -66,15 +68,15 @@ export class HandleReceive {
             const connectionConfiguration = serverConnectionReadyCli.output as ConnectionConfiguration;
             const notifyServerResponseResult = this.middleware.sendClientData.notifyServerResponse(serverConnectionReadyCli);
             if(!notifyServerResponseResult){
-                logger("notifyServerResponseResult is false, ignoring ConfigureConnectionResponseCli");
+                this.logger("notifyServerResponseResult is false, ignoring ConfigureConnectionResponseCli");
                 return;
             }
             this.onReceiveConnectionConfigurationFromServer(serverConnectionReadyCli);
             this.middleware.connectionReady(serverConnectionReadyCli.output as ConnectionConfiguration, serverConnectionReadyCli.error, );
 
-            if (AsklessClient.instance.projectName != null && connectionConfiguration.projectName != null && AsklessClient.instance.projectName != connectionConfiguration.projectName) {
+            if (this.middleware.asklessClient.projectName != null && connectionConfiguration.projectName != null && this.middleware.asklessClient.projectName != connectionConfiguration.projectName) {
                 this.middleware.disconnectAndClear();
-                throw Error("Looks like you are not running the right server (" + connectionConfiguration.projectName + ") to your JavaScript Client project (" + AsklessClient.instance.projectName + ")");
+                throw Error("Looks like you are not running the right server (" + connectionConfiguration.projectName + ") to your JavaScript Client project (" + this.middleware.asklessClient.projectName + ")");
             }
 
         } else if(messageMap[ResponseCli.type] != null){

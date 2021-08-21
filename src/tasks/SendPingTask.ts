@@ -1,22 +1,21 @@
 import {TimedTask} from "./TimedTask";
 import {PingPong} from "../middleware/data/connection/PingPong";
-import {Internal, logger} from "../index";
+import {Internal, } from "../index";
 import {ConnectionConfiguration} from "../middleware/data/response/ConnectionConfiguration";
-import {wsSend} from "../middleware/ws";
 
 
 export class SendPingTask extends TimedTask{
-    constructor() {
+    constructor(public readonly internal:Internal) {
         super('SendPingTask', new ConnectionConfiguration().intervalInSecondsClientPing);
     }
 
     run(): void {
         try{
-            if(Internal.instance.connection != "DISCONNECTED") {
-                wsSend(JSON.stringify(new PingPong(Internal.instance.middleware.superListeningToArray)));
+            if(this.internal.connection != "DISCONNECTED") {
+                this.internal.logger(JSON.stringify(new PingPong(this.internal.middleware.superListeningToArray)));
             }
         }catch (e) {
-            logger('Ping failed', "error");
+            this.internal.logger('Ping failed', "error");
         }
     }
 

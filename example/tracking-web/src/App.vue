@@ -11,18 +11,20 @@
 </template>
 
 <script>
-// Debug only:
-// import {AsklessClient} from "askless-js-client/web-debug";
-// OR
-// const AsklessClient = require("askless-js-client/web-debug").AsklessClient;
 
-// Recommended:
-// import {AsklessClient} from "askless-js-client/web";
-// OR
-// const AsklessClient = require("askless-js-client/web").AsklessClient;
+// Import Askless:
+//-> Node App:
+//   import { AsklessClient } from "askless-js-client/node";
+//      OR
+//   const AsklessClient = require("askless-js-client/node").AsklessClient;
+//-> Web App:
+//   import { AsklessClient } from "askless-js-client/web";
+//      OR
+//   const AsklessClient = require("askless-js-client/web").AsklessClient;
 
+import { AsklessClient, NewDataForListener } from "../../../dist/askless-js-client/web-debug";
 
-import { AsklessClient, NewDataForListener} from "../../../dist/askless-js-client/web";
+const asklessClient = new AsklessClient();
 
 export default {
   name: 'App',
@@ -40,7 +42,7 @@ export default {
     this.listening.close();
   },
   created() {
-    AsklessClient.instance.init({
+    asklessClient.init({
       serverUrl: 'ws://192.168.2.1:3000',
       projectName: 'tracking-ts',
     });
@@ -48,7 +50,7 @@ export default {
     this.text = 'Just a second...';
     this.connectionState = '';
 
-    this.listening = AsklessClient.instance.listen({
+    this.listening = asklessClient.listen({
       route: 'product/tracking-ts',
       listener: data => {
         console.log("NEW DATA RECEIVED: ");
@@ -57,7 +59,7 @@ export default {
       },
     });
 
-    AsklessClient.instance
+    asklessClient
       .addOnConnectionChange({
         listener: (connection) => {
           console.log("connection changed: "+connection);
@@ -78,7 +80,7 @@ export default {
   },
   methods: {
     send(){
-      AsklessClient.instance
+      asklessClient
           .create({
             route: 'product/customerSaid', body: 'I\'m waiting'
           }).then((res) => {

@@ -42,7 +42,7 @@ The URL of the server, must start with `ws://` or `wss://`. Example: `ws://192.1
 
 ##### Example
 
-    AsklessClient.instance.init({
+    asklessClient.init({
         serverUrl: 'ws://192.168.2.1:3000',
         projectName: 'MyApp',
         logger: {
@@ -80,7 +80,7 @@ so that the server can be able to accept or deny the connection attempt (optiona
 
 ### Example
 
-    AsklessClient.instance.connect({
+    asklessClient.connect({
         ownClientId: ownClientId,
         headers: {
             'Authorization': 'Bearer abcd'
@@ -102,7 +102,7 @@ A simple way of authentication would be the client inform the email
 and password in the `header` field of the `connect` method:
 
     // Not recommended
-    AsklessClient.instance.connect({
+    asklessClient.connect({
         headers: {
             "email" : "me@example.com",
             "password": "123456"
@@ -122,7 +122,7 @@ In this way, the token can be set in the `headers` field of the `connect` method
     // 'token' is an example of a route to
     // request a token on the server side
     // by informing the e-mail and password
-    AsklessClient.instance.create({ 
+    asklessClient.create({ 
         route: 'token',
         body: {
             'email' : 'me@example.com',
@@ -139,7 +139,7 @@ In this way, the token can be set in the `headers` field of the `connect` method
            
            // Reconnect informing the token and ownClientId
            // obtained in the last response
-           AsklessClient.instance.connect({
+           asklessClient.connect({
                ownClientId: loginResponse.output['ownClientId'],
                headers: {
                    'Authorization' : loginResponse.output['Authorization']
@@ -149,7 +149,7 @@ In this way, the token can be set in the `headers` field of the `connect` method
                    console.log("Connected as me@example.com!");
                }else{
                    console.log("Failed to connect, connecting again as unlogged user...");
-                   AsklessClient.instance.connect();
+                   asklessClient.connect();
                }
            })
        }
@@ -226,7 +226,7 @@ Removes the added `listener `.
 
 #### Example
  
-    AsklessClient.instance
+    asklessClient
         .create({
             route: 'product',
             body: {
@@ -258,7 +258,7 @@ Removes the added `listener `.
 
 #### Example
  
-    AsklessClient.instance
+    asklessClient
         .read({
             route: 'allProducts',
             query: {
@@ -290,7 +290,7 @@ Removes the added `listener `.
 
 ### Example
 
-    const listeningForNewGamingProducts = AsklessClient.instance
+    const listeningForNewGamingProducts = asklessClient
         .listen({
             route: 'allProducts',
             query: {
@@ -332,7 +332,7 @@ Removes the added `listener `.
 
 #### Example
 
-    AsklessClient.instance
+    asklessClient
         .update({
             route: 'allProducts',
             query: {
@@ -362,7 +362,7 @@ Removes the added `listener `.
 
 #### Example
 
-    AsklessClient.instance
+    asklessClient
         .delete({
             route: 'product',
             query: {

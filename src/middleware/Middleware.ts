@@ -1,7 +1,7 @@
 import {Stream} from "stream";
 import {HandleReceive} from "./HandleReceive";
 import {SendClientData} from "./SendData";
-import {DisconnectionReason, Internal, logger, AsklessClient} from "../index";
+import {DisconnectionReason, Internal, AsklessClient} from "../index";
 import {ConnectionConfiguration} from "./data/response/ConnectionConfiguration";
 import {
     ConfigureConnectionResponseCli,
@@ -23,7 +23,7 @@ import {
 } from "../constants";
 import {assert, Utils} from "../utils";
 import {RequestType} from "./data/Types";
-import {getWS, setWS, wsSend} from "./ws";
+import {WsMiddleware} from "./WsMiddleware";
 const WebSocket = global.WebSocket || require('isomorphic-ws');
 
 /**
@@ -127,13 +127,16 @@ export class Middleware {
     private _disconnectAndClearOnDone: VoidFunction = () => {};
     private _clientId: string | number;
     private onReceiveConnectionConfigurationFromServer:(connectionConfiguration:ConfigureConnectionResponseCli) => void;
+    readonly internal:Internal;
+    ws:WsMiddleware;
     // private onFailToReceiveConnectionConfigurationFromServer: (reason:DisconnectionReason) => void;
 
-    constructor(public readonly serverUrl: string) {
+    constructor(public readonly asklessClient:AsklessClient) {
         this.handleReceive = new HandleReceive(this, (connectionConfiguration:ConfigureConnectionResponseCli) => {
             this.onReceiveConnectionConfigurationFromServer(connectionConfiguration);
         });
         this.sendClientData = new SendClientData(this);
+        this.internal = asklessClient.internal;
     }
 
     async runOperationInServer(requestCli: AbstractRequestCli, neverTimeout: boolean): Promise<ResponseCli> {
@@ -143,6 +146,8 @@ export class Middleware {
     get lastPongFromServer() {
         return this._lastPongFromServer;
     }
+
+    get logger () { return this.internal.logger; }
 
     get clientId() {
         return this._clientId;
@@ -157,7 +162,7 @@ export class Middleware {
     }
 
     connectionReady(connectionConfiguration: ConnectionConfiguration, error: ResponseError) {
-        logger('connectionReady');
+        this.logger('connectionReady');
 
         if (connectionConfiguration != null) {
             this.connectionConfiguration = connectionConfiguration;
@@ -173,32 +178,32 @@ export class Middleware {
             (connectionConfiguration.clientVersionCodeSupported.lessThanOrEqual != null && CLIENT_LIBRARY_VERSION_CODE > connectionConfiguration.clientVersionCodeSupported.lessThanOrEqual)
         ) {
             this.disconnectAndClear();
-            Internal.instance.disconnectionReason = "VERSION_CODE_NOT_SUPPORTED";
+            this.asklessClient.internal.disconnectionReason = "VERSION_CODE_NOT_SUPPORTED";
             throw Error("Check if you server and client are updated! Your Client version on server is " + connectionConfiguration.serverVersion + ". Your Client client version is " + CLIENT_LIBRARY_VERSION_NAME)
         }
 
-        if (AsklessClient.instance.projectName != null && connectionConfiguration.projectName != null && AsklessClient.instance.projectName != connectionConfiguration.projectName) {
+        if (this.asklessClient.internal.asklessClient.projectName != null && connectionConfiguration.projectName != null && this.asklessClient.internal.asklessClient.projectName != connectionConfiguration.projectName) {
             this.disconnectAndClear();
-            Internal.instance.disconnectionReason = "WRONG_PROJECT_NAME";
-            throw Error("Looks like you are not running the right server (" + connectionConfiguration.projectName + ") to your Flutter JavaScript project (" + AsklessClient.instance.projectName + ")");
+            this.asklessClient.internal.disconnectionReason = "WRONG_PROJECT_NAME";
+            throw Error("Looks like you are not running the right server (" + connectionConfiguration.projectName + ") to your Flutter JavaScript project (" + this.asklessClient.internal.asklessClient.projectName + ")");
         }
 
-        Internal.instance.sendPingTask.changeInterval(connectionConfiguration.intervalInSecondsClientPing);
+        this.asklessClient.internal.sendPingTask.changeInterval(connectionConfiguration.intervalInSecondsClientPing);
 
         // Delay to avoid sending to LISTEN request's at the same time
         setTimeout(() => {
-            Internal.instance.sendMessageToServerAgainTask.changeInterval(connectionConfiguration.intervalInSecondsClientSendSameMessage);
+            this.asklessClient.internal.sendMessageToServerAgainTask.changeInterval(connectionConfiguration.intervalInSecondsClientSendSameMessage);
         }, connectionConfiguration.intervalInSecondsClientSendSameMessage * 1000);
 
-        Internal.instance.notifyConnectionChanged("CONNECTED_WITH_SUCCESS");
-        assert(getWS().readyState == 1);
+        this.asklessClient.internal.notifyConnectionChanged("CONNECTED_WITH_SUCCESS");
+        assert(this.ws.readyState == 1);
     }
 
 
     disconnectAndClear(onDone?: VoidFunction): void {
         if (onDone != null)
             this._disconnectAndClearOnDone = onDone;
-        logger('disconnectAndClear');
+        this.logger('disconnectAndClear');
 
         this.close(true);
         this.sendClientData?.clear();
@@ -208,22 +213,20 @@ export class Middleware {
     }
 
     close(doNotReconnect?:boolean): void {
-        // Internal.instance.notifyConnectionChanged("DISCONNECTED", disconnectionReason || Internal.instance.disconnectionReason);
-
-        const ws = getWS();
-        if(!ws || ws.readyState==2 || ws.readyState==3){
-            logger('close(): Ignoring close() because readyState = '+ws?.readyState);
+        // this.asklessClient.internal.notifyConnectionChanged("DISCONNECTED", disconnectionReason || this.asklessClient.internal.disconnectionReason);;
+        if(!this.ws || this.ws.readyState==2 || this.ws.readyState==3){
+            this.logger('close(): Ignoring close() because readyState = '+this.ws?.readyState);
             return;
         }
-        logger('close started');
+        this.logger('close started');
 
         if(doNotReconnect){
-            ws['__do_not_reconnect__'] = true;
+            this.ws['__do_not_reconnect__'] = true;
         }
 
-        if(ws){
-            ws.close();
-            setWS(null);
+        if(this.ws){
+            this.ws.close();
+            this.ws = null;
         }
 
         this.sendClientData?.removePendingRequest(RequestType.CONFIGURE_CONNECTION);
@@ -233,12 +236,12 @@ export class Middleware {
 
 
     confirmReceiptToServer(serverId: string): void {
-        logger("confirmReceiptToServer " + serverId);
+        this.logger("confirmReceiptToServer " + serverId);
 
-        if (getWS() == null)
-            logger("getWS()==null", "error");
+        if (this.ws == null)
+            this.logger("this.ws==null", "error");
 
-        wsSend(JSON.stringify(new ClientConfirmReceiptCli(serverId)));
+        this.ws.send(JSON.stringify(new ClientConfirmReceiptCli(serverId)));
     }
 
 
@@ -248,15 +251,15 @@ export class Middleware {
             if (sub.onMessage)
                 sub.onMessage(message);
             else
-                logger('onNewData is null on ClientListeningToRoute', "error",);
+                this.logger('onNewData is null on ClientListeningToRoute', "error",);
             sub.lastReceivementFromServer = message;
         } else
-            logger('NewDataForListener is null: NewDataForListener.listenId:'+message.listenId, "error", this.superListeningToArray || 'superListeningToArray é null');
+            this.logger('NewDataForListener is null: NewDataForListener.listenId:'+message.listenId, "error", this.superListeningToArray || 'superListeningToArray é null');
     }
 
 
     listen(listenCli: ListenCli): Listening {
-        logger('listen');
+        this.logger('listen');
 
         let hash = JSON.parse(JSON.stringify(listenCli));
         delete hash['clientRequestId']; //TODO: tipar
@@ -265,10 +268,10 @@ export class Middleware {
 
         const alreadyListening = this.superListeningToArray.find((listen) => listen.hash == hash,);
         if (alreadyListening != null) {
-            logger('alreadyListening');
+            this.logger('alreadyListening');
             return alreadyListening.newChild();
         } else { //New
-            logger('NEW Listening (alreadyListening==null)', "debug", hash);
+            this.logger('NEW Listening (alreadyListening==null)', "debug", hash);
             // console.log('');
             // console.log('clientRequestId: '+listenCli.clientRequestId);
             const listenId = LISTEN_PREFIX + (listenCli.clientRequestId.toString().substring(REQUEST_PREFIX.length));
@@ -287,9 +290,9 @@ export class Middleware {
             this.runOperationInServer(listenCli, null).then((response) => {
                 if (response.error != null) {
                     ref[0].onError(response.error);
-                    logger('could not listen', "error", response.error);
+                    this.logger('could not listen', "error", response.error);
                 } else {
-                    logger('now is listening!', "debug", response);
+                    this.logger('now is listening!', "debug", response);
                 }
             });
 
@@ -300,42 +303,42 @@ export class Middleware {
 
     private async resolveConnect(ownClientId, headers) {
         this.close(true);
-        if(getWS()?.readyState == 2 || getWS()?.readyState == 3){ // isWebsocketConnectionBeingClose
-            logger('resolveConnect: waiting disconnect to finish');
+        if(this.ws?.readyState == 2 || this.ws?.readyState == 3){ // isWebsocketConnectionBeingClose
+            this.logger('resolveConnect: waiting disconnect to finish');
             const LIMIT = 300;
-            for(let i=0; getWS() != null && i<LIMIT; i++){
+            for(let i=0; this.ws != null && i<LIMIT; i++){
                 await Utils.wait(10);
             }
-            if(getWS()) {
-                logger('resolveConnect: disconnect finished because of limit has been limitReached, continuing the resolveConnect method...', "error");
+            if(this.ws) {
+                this.logger('resolveConnect: disconnect finished because of limit has been limitReached, continuing the resolveConnect method...', "error");
                 try{
-                    getWS().close();
+                    this.ws.close();
                 }catch (e){
-                    logger('resolveConnect error: '+e.toString(), "error", e.stack);
+                    this.logger('resolveConnect error: '+e.toString(), "error", e.stack);
                 }
-                setWS(null);
+                this.ws = null;
             }else
-                logger('resolveConnect: disconnect finished (because of getWS() is null), continuing the resolveConnect method...');
+                this.logger('resolveConnect: disconnect finished (because of this.ws is null), continuing the resolveConnect method...');
         }
-        Internal.instance.notifyConnectionChanged("CONNECTION_IN_PROGRESS");
+        this.asklessClient.internal.notifyConnectionChanged("CONNECTION_IN_PROGRESS");
 
 
         this._clientId = ownClientId;
-        Internal.instance.disconnectionReason = null;
+        this.asklessClient.internal.disconnectionReason = null;
 
         if (ownClientId == null) {
             if (Middleware.CLIENT_GENERATED_ID == null) {
                 this._clientId = ownClientId = Middleware.CLIENT_GENERATED_ID = CLIENT_GENERATED_ID_PREFIX + Utils.makeId(15);
-                logger("New client generated id: " + Middleware.CLIENT_GENERATED_ID);
+                this.logger("New client generated id: " + Middleware.CLIENT_GENERATED_ID);
             } else
-                logger("Using the same client generated id: " + Middleware.CLIENT_GENERATED_ID);
+                this.logger("Using the same client generated id: " + Middleware.CLIENT_GENERATED_ID);
         }
 
-        if (Internal.instance.tasksStarted == false) {
-            Internal.instance.tasksStarted = true;
+        if (this.asklessClient.internal.tasksStarted == false) {
+            this.asklessClient.internal.tasksStarted = true;
             setTimeout(() => {
-                Internal.instance.sendMessageToServerAgainTask.start();
-                Internal.instance.sendPingTask.start();
+                this.asklessClient.internal.sendMessageToServerAgainTask.start();
+                this.asklessClient.internal.sendPingTask.start();
             }, 200);
         }
 
@@ -344,15 +347,15 @@ export class Middleware {
         let response: ResponseCli; //ConfigureConnectionResponseCli
 
         //do {
-        logger("middleware: connect");
+        this.logger("middleware: connect");
         response = null;
 
-        let myOwnWsReference;
-
         try{
-            myOwnWsReference = new WebSocket(this.serverUrl);
-            myOwnWsReference['__id__'] = Utils.makeId(11);
-            setWS(myOwnWsReference);
+            this.ws = new WsMiddleware({
+                middleware: this,
+                address: this.asklessClient.internal.serverUrl,
+            });
+            this.ws['__id__'] = Utils.makeId(11);
         }catch (e) {
             if((e.toString() as string).includes('WebSocket is not a constructor')){
                 throw Error("Probably wrong import, try importing as \"askless-js-client/node\" instead");
@@ -361,29 +364,29 @@ export class Middleware {
         }
 
 
-        function updateDisconnectionReason(error: ResponseError) {
+        const updateDisconnectionReason = (error: ResponseError) => {
             if(error?.code == "TOKEN_INVALID")
-                Internal.instance.disconnectionReason = "TOKEN_INVALID";
+                this.asklessClient.internal.disconnectionReason = "TOKEN_INVALID";
             else
-                Internal.instance.disconnectionReason = "UNDEFINED";
+                this.asklessClient.internal.disconnectionReason = "UNDEFINED";
         }
 
-        getWS().onopen = async () => {
+        this.ws.onopen = async () => {
             try {
-                logger("ws.on OPEN");
+                this.logger("ws.on OPEN");
 
-                if (myOwnWsReference['__invalid__']) {
-                    myOwnWsReference.close();
+                if (this.ws['__invalid__']) {
+                    this.ws.close();
                     return;
                 }
 
                 assert(response == null);
                 response = await this.sendClientData.send(new ConfigureConnectionRequestCli(ownClientId, headers ?? new Map()), null);
 
-                logger('ConfigureConnectionRequestCli', "debug", new ConfigureConnectionRequestCli(this.clientId, headers ?? new Map()));
+                this.logger('ConfigureConnectionRequestCli', "debug", new ConfigureConnectionRequestCli(this.clientId, headers ?? new Map()));
 
                 if (response.error != null) {
-                    logger("Data could not be sent, got an error", "error", response);
+                    this.logger("Data could not be sent, got an error", "error", response);
 
                     updateDisconnectionReason(response.error);
 
@@ -391,14 +394,14 @@ export class Middleware {
                     setTimeout(() => this.close(), 10);
                 }
             } catch (e) {
-                logger('on open error: ' + (typeof e == 'string' ? e : JSON.stringify(e)), "error", e.stack);
+                this.logger('on open error: ' + (typeof e == 'string' ? e : JSON.stringify(e)), "error", e.stack);
             }
         };
 
-        getWS().onmessage = async (receivedData) => {
+        this.ws.onmessage = async (receivedData) => {
             try {
-                if (myOwnWsReference['__invalid__']) {
-                    myOwnWsReference.close();
+                if (this.ws['__invalid__']) {
+                    this.ws.close();
                     console.log("-----------------------------------------------------------------------");
                     console.log("--------------------- ENTROU NO on message INVALID --------------------");
                     console.log("-----------------------------------------------------------------------");
@@ -407,51 +410,51 @@ export class Middleware {
 
                 this._lastPongFromServer = Date.now();
 
-                // logger('message received from server', "debug", receivedData.data);
+                // this.logger('message received from server', "debug", receivedData.data);
 
                 if (receivedData.data == 'pong' || receivedData.data == 'welcome') {
                     return;
                 }
 
-                logger('message received from server (not a pong)', "debug", receivedData.data);
+                this.logger('message received from server (not a pong)', "debug", receivedData.data);
 
                 this.handleReceive.handle(typeof receivedData.data == "object" ? receivedData.data : JSON.parse(receivedData.data));
             }catch (e){
-                logger('onmessage error', "error", e.stack);
+                this.logger('onmessage error', "error", e.stack);
             }
         };
 
-        getWS().onerror = async (err) => {
-            logger("middleware: channel.stream.listen onError: " + (err || 'null'), 'error', err);
+        this.ws.onerror = async (err) => {
+            this.logger("middleware: channel.stream.listen onError: " + (err || 'null'), 'error', err);
         };
 
-        getWS().onclose = async () => {
+        this.ws.onclose = async () => {
             try {
-                logger("channel.stream.listen close");
+                this.logger("channel.stream.listen close");
 
-                if(!getWS() || getWS()['__id__']==null || myOwnWsReference['__id__'] == getWS()['__id__']){
-                    Internal.instance.notifyConnectionChanged("DISCONNECTED");
+                if(!this.ws || this.ws['__id__']==null || this.ws['__id__'] == this.ws['__id__']){
+                    this.asklessClient.internal.notifyConnectionChanged("DISCONNECTED");
                 }
 
                 updateDisconnectionReason(response?.error);
 
-                if (!myOwnWsReference['__invalid__']) {
-                    myOwnWsReference['__invalid__'] = true;
+                if (!this.ws['__invalid__']) {
+                    this.ws['__invalid__'] = true;
                     setTimeout(() => {
-                        if (Internal.instance.connection === "DISCONNECTED") {
+                        if (this.asklessClient.internal.connection === "DISCONNECTED") {
                             this._disconnectAndClearOnDone();
                             this._disconnectAndClearOnDone = () => {};
 
-                            if (Internal.instance.disconnectionReason != "TOKEN_INVALID" &&
-                                Internal.instance.disconnectionReason != "DISCONNECTED_BY_CLIENT" &&
-                                Internal.instance.disconnectionReason != "VERSION_CODE_NOT_SUPPORTED" &&
-                                Internal.instance.disconnectionReason != "WRONG_PROJECT_NAME"
+                            if (this.asklessClient.internal.disconnectionReason != "TOKEN_INVALID" &&
+                                this.asklessClient.internal.disconnectionReason != "DISCONNECTED_BY_CLIENT" &&
+                                this.asklessClient.internal.disconnectionReason != "VERSION_CODE_NOT_SUPPORTED" &&
+                                this.asklessClient.internal.disconnectionReason != "WRONG_PROJECT_NAME"
                             ) {
-                                if (Internal.instance.disconnectionReason == null)
-                                    Internal.instance.disconnectionReason = "UNDEFINED";
+                                if (this.asklessClient.internal.disconnectionReason == null)
+                                    this.asklessClient.internal.disconnectionReason = "UNDEFINED";
 
-                                if(Internal.instance.connection == "DISCONNECTED"){
-                                    if(!myOwnWsReference['__do_not_reconnect__']){
+                                if(this.asklessClient.internal.connection == "DISCONNECTED"){
+                                    if(!this.ws['__do_not_reconnect__']){
                                         this.resolveConnect(ownClientId, headers);
                                     }
                                 }
@@ -459,7 +462,7 @@ export class Middleware {
                             else{
                                 this.onReceiveConnectionConfigurationFromServer(Object.assign(new ConfigureConnectionResponseCli(null,null), {
                                     error: new ResponseError({
-                                        code: Internal.instance.disconnectionReason,
+                                        code: this.asklessClient.internal.disconnectionReason,
                                         description: 'function grantConnection (server side) didn\'t allow the connection',
                                     })
                                 }))
@@ -469,7 +472,7 @@ export class Middleware {
                 }
 
             } catch (e) {
-                logger('on close error: ' + (typeof e == 'string' ? e : JSON.stringify(e)), "error", e.stack);
+                this.logger('on close error: ' + (typeof e == 'string' ? e : JSON.stringify(e)), "error", e.stack);
             }
         };
 

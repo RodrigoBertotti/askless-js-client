@@ -52,17 +52,17 @@ siga as instruções do servidor na seção "Começando"
 
     npm install askless-js-client --save
     
-3 -  Importe
+3 -  Importe usando ES5 ou ES6:
 
-JavaScript
+ES5:
 
     // Se você vai executar no navegador
     const AsklessClient = require("askless-js-client/web").AsklessClient; 
     
     // Se você vai executar como um cliente Node.js
     const AsklessClient = require("askless-js-client/node").AsklessClient; 
-    
-TypeScript
+
+ES6:
 
     import {AsklessClient} from "askless-js-client/web";
     
@@ -70,23 +70,26 @@ TypeScript
     
     import {AsklessClient} from "askless-js-client/node";
 
+4 - Crie uma instância do cliente Askless:
 
-4 - Inicialize o servidor informando o endereço IPv4 da rede local obtido e a porta (padrão: 3000).
+    const asklessClient = new AsklessClient();
+
+5 - Inicialize o servidor informando o endereço IPv4 da rede local obtido e a porta (padrão: 3000).
 
 
-5 - Realize a conexão com o servidor com `AsklessClient.instance.connect()`
+6 - Realize a conexão com o servidor com `asklessClient.connect()`
     
 Exemplo:
 
-    AsklessClient.instance.init({
+    asklessClient.init({
         serverUrl: 'ws://192.168.2.1:3000',
     });
-    AsklessClient.instance.connect();   
+    asklessClient.connect();   
 
 
-6 - Obtenha atualizações de dados em tempo real
+7 - Obtenha atualizações de dados em tempo real
  
-    this.listening = AsklessClient.instance.listen({
+    this.listening = asklessClient.listen({
         route: 'product/tracking',
         
         listen: data => {
@@ -96,14 +99,14 @@ Exemplo:
         },
     });
 
-7 - Envie dados ao servidor quando o usuário clicar no botão
+8 - Envie dados ao servidor quando o usuário clicar no botão
  
-    AsklessClient.instance.create({
+    asklessClient.create({
         route: 'product/customerSaid',
         body: 'I\'m waiting'
     });
 
-8 - Precisamos parar de ouvir por dados na rota `product/customerSaid` em algum lugar da nossa 
+9 - Precisamos parar de ouvir por dados na rota `product/customerSaid` em algum lugar da nossa 
 aplicação, neste exemplo vamos parar de receber depois de 120 segundos, mas você
 parar de ouvir para essa rota quando o usuário mudar de tela
 

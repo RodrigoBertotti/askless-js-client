@@ -64,9 +64,9 @@
 </template>
 
 <script>
-import { AsklessClient} from "../../../dist/askless-js-client/web-debug";
 import Connection from '@/components/Connection.vue';
 import ShowingProductsByListeningToARoute from "@/components/ShowingProductsByListeningToARoute";
+import {asklessClient} from "./AsklessClient";
 
 export default {
   name: 'catalog-web',
@@ -75,7 +75,7 @@ export default {
     Connection,
   },
   created() {
-    AsklessClient.instance.init({
+    asklessClient.init({
       serverUrl: 'ws://192.168.2.1:3000',
       projectName: 'catalog',
       logger: {
@@ -89,7 +89,7 @@ export default {
     async connect(currentOwnClientId, headers)  {
       console.log('connecting...');
       this.currentOwnClientId = currentOwnClientId;
-      const res = (await AsklessClient.instance.connect({
+      const res = (await asklessClient.connect({
         ownClientId: currentOwnClientId,
         headers: headers
       }));
@@ -114,7 +114,7 @@ export default {
         console.log('Old listening has been closed');
       }
 
-      this.listening1 = await AsklessClient.instance.listen({
+      this.listening1 = await asklessClient.listen({
         route: "product/all",
         query: {
           search: this.search
@@ -123,7 +123,7 @@ export default {
           this.setProducts1(data.output);
         }
       });
-      this.listening2 = await AsklessClient.instance.listen({
+      this.listening2 = await asklessClient.listen({
         route: "product/all",
         query: {
           search: this.search
@@ -132,7 +132,7 @@ export default {
           this.setProducts2(data.output);
         }
       });
-      this.listening3 = await AsklessClient.instance.listen({
+      this.listening3 = await asklessClient.listen({
         route: "product/all/reversed",
         query: {
           search: this.search
@@ -162,7 +162,7 @@ export default {
     },
 
     async removeProduct(params) {
-      const res = await AsklessClient.instance.delete({
+      const res = await asklessClient.delete({
         route: 'product',
         query: {
           'id': params.id
@@ -185,7 +185,7 @@ export default {
     },
 
     async addProduct() {
-      const res = await AsklessClient.instance.create({
+      const res = await asklessClient.create({
         route: 'product',
         body: {
           'name': this.productNameCtrl,

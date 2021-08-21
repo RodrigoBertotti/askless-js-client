@@ -1,18 +1,23 @@
-// Debug only:
-// const askless = require("../../dist/askless-js-client/node-debug");
-
-// Recommended:
-const askless = require("../../dist/askless-js-client/node");
-
-const AsklessClient = askless.AsklessClient;
+// Import Askless:
+//-> Node App:
+//   import { AsklessClient } from "askless-js-client/node";
+//      OR
+//   const AsklessClient = require("askless-js-client/node").AsklessClient;
+//-> Web App:
+//   import { AsklessClient } from "askless-js-client/web";
+//      OR
+//   const AsklessClient = require("askless-js-client/web").AsklessClient;
+const AsklessClient = require("../../dist/askless-js-client/node-debug").AsklessClient
 
 const ownClientId = 'blue';
 
-AsklessClient.instance.init({
+const asklessClient = new AsklessClient();
+
+asklessClient.init({
     serverUrl: 'ws://192.168.2.1:3000',
     projectName: 'chat-js',
 });
-AsklessClient.instance.connect({
+asklessClient.connect({
     ownClientId: ownClientId,
     headers: {
         'Authorization': 'Bearer abcd'
@@ -24,13 +29,13 @@ AsklessClient.instance.connect({
         console.error(JSON.stringify(response.error));
 });
 
-AsklessClient.instance.addOnConnectionChange({
+asklessClient.addOnConnectionChange({
     listener: (connection => {
         console.log("CONNECTION CHANGED: "+connection);
     })
 });
 
-AsklessClient.instance.listen({
+asklessClient.listen({
     route: 'message',
     listener: data => {
         console.log("you received a new message: ");
@@ -41,7 +46,7 @@ AsklessClient.instance.listen({
 const max = 100;
 for(let i=1;i<=max;i++){
     setTimeout(() => {
-        AsklessClient.instance.create({
+        asklessClient.create({
             'route': 'message',
             'body' : {
                 'text': `User sent message number ${i}/${max}`,

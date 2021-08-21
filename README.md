@@ -52,17 +52,17 @@ follow the server instructions in the section "Getting Started"
 
     npm install askless-js-client --save
 
-3 - Import the package
+3 - Import by using ES5 or ES6
 
-JavaScript
+ES5:
  
     // If you will run on the browser
     const AsklessClient = require("askless-js-client/web").AsklessClient; 
     
     // If you will run on Node.js environment
     const AsklessClient = require("askless-js-client/node").AsklessClient; 
-    
-TypeScript
+
+ES6:
 
     import {AsklessClient} from "askless-js-client/web";
     
@@ -70,24 +70,28 @@ TypeScript
     
     import {AsklessClient} from "askless-js-client/node";
 
-4 - Initialize
+4 - Create an instance of the Askless client
+
+    const asklessClient = new AsklessClient();
+
+5 - Initialize
 informing the server url with port (default: 3000). 
 On the server side you can access the `myAsklessServer.localUrl` attribute
 to discover.
 
-5 - Perform the connection with `AsklessClient.instance.connect()`
+6 - Perform the connection with `asklessClient.connect()`
     
 Example:
 
-    AsklessClient.instance.init({
+    asklessClient.init({
          serverUrl: 'ws://192.168.2.1:3000',
     });
-    AsklessClient.instance.connect();  
+    asklessClient.connect();  
 
 
-6 - Get realtime data updates
+7 - Get realtime data updates
  
-    this.listening = AsklessClient.instance.listen({
+    this.listening = asklessClient.listen({
         route: 'product/tracking',
         
         listen: data => {
@@ -97,14 +101,14 @@ Example:
         },
     });
 
-7 - Send data to the server when the user click on the button
+8 - Send data to the server when the user click on the button
  
-    AsklessClient.instance.create({
+    asklessClient.create({
         route: 'product/customerSaid',
         body: 'I\'m waiting'
     });
 
-8 - We need to stop listening from `product/customerSaid` route on
+9 - We need to stop listening from `product/customerSaid` route on
 server, in this example let's stop after 120 seconds, but you should 
 stop listening to this route when the user changes the screen
 

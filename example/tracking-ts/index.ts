@@ -1,18 +1,25 @@
-// Debug only:
-// import {AsklessClient, Listening, NewDataForListener} from "../../dist/askless-js-client/node-debug";
+// Import Askless:
+//-> Node App:
+//   import { AsklessClient } from "askless-js-client/node";
+//      OR
+//   const AsklessClient = require("askless-js-client/node").AsklessClient;
+//-> Web App:
+//   import { AsklessClient } from "askless-js-client/web";
+//      OR
+//   const AsklessClient = require("askless-js-client/web").AsklessClient;
+import { AsklessClient } from "../../dist/askless-js-client/node-debug"
 
-// Recommended:
-import {AsklessClient, Listening, NewDataForListener} from "../../dist/askless-js-client/node";
+const asklessClient = new AsklessClient();
 
-
-AsklessClient.instance.init({
+asklessClient.init({
     serverUrl: 'ws://192.168.2.1:3000',
     projectName: 'tracking-ts',
 });
 
-AsklessClient.instance.connect();
 
-const listening = AsklessClient.instance.listen({
+asklessClient.connect();
+
+const listening = asklessClient.listen({
     route: 'product/tracking-ts',
     listener: data => {
         console.log("NEW DATA RECEIVED: ");

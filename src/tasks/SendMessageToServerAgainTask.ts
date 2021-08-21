@@ -6,13 +6,13 @@ import {Connection, Internal, OnConnectionChangeListener} from "../index";
 export class SendMessageToServerAgainTask extends TimedTask {
     onConnectionChange:OnConnectionChangeListener;
 
-    constructor() {
+    constructor(public readonly internal:Internal) {
         super('SendMessageToServerAgainTask', new ConnectionConfiguration().intervalInSecondsClientSendSameMessage);
     }
 
     run(): void {
-        if (Internal.instance.connection!="DISCONNECTED")
-            Internal.instance.middleware?.sendClientData?.sendMessagesToServerAgain();
+        if (this.internal.connection!="DISCONNECTED")
+            this.internal.middleware?.sendClientData?.sendMessagesToServerAgain();
     }
 
 

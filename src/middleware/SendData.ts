@@ -1,10 +1,10 @@
 import {Middleware} from "./Middleware";
 import {ResponseError, ResponseCli} from "./data/response/ResponseCli";
 import {AbstractRequestCli, ListenCli} from "./data/request/RequestCli";
-import {Internal, logger} from "../index";
+import {Internal,} from "../index";
 import {RequestType} from "./data/Types";
 import {assert, Utils} from "../utils";
-import {wsSend} from "./ws";
+import {WsMiddleware} from "./WsMiddleware";
 
 export type OnResponseCallback = (response:ResponseCli) => void;
 export type SendDataListener = (data:AbstractRequestCli) => void;
@@ -19,10 +19,13 @@ export class _Request {
 export class SendClientData {
     _pendingRequestsList: Array<_Request> = [];
     middleware: Middleware;
+    readonly ws: WsMiddleware;
 
     constructor(middleware: Middleware) {
         this.middleware = middleware;
     }
+
+    get logger () { return this.middleware.logger; }
 
     clear(): void {
         this.removePendingRequest();
@@ -32,13 +35,13 @@ export class SendClientData {
         const req = this._pendingRequestsList.find((p) => p.data.clientRequestId == response.clientRequestId,);
         if (req != null) {
             req.onResponse(response);
-            logger("Response "+response.clientRequestId+" received and removed from the _pendingRequestsList");
+            this.logger("Response "+response.clientRequestId+" received and removed from the _pendingRequestsList");
             this._pendingRequestsList.splice(this._pendingRequestsList.indexOf(req), 1);
             return true;
         } else {
             // console.log(JSON.parse(JSON.stringify(this._pendingRequestsList)));
             // console.log('(response.clientRequestId -> '+response.clientRequestId);
-            logger("Response received: "+response.clientRequestId+", but did nothing, probably because the request timed out before");
+            this.logger("Response received: "+response.clientRequestId+", but did nothing, probably because the request timed out before");
             return false;
         }
     }
@@ -51,8 +54,8 @@ export class SendClientData {
 
 
     async sendMessagesToServerAgain(): Promise<void> {
-        if(Internal.instance.connection == "DISCONNECTED"){
-            logger('ignoring sendMessagesToServerAgain, Internal.instance.connection == "DISCONNECTED"', "debug");
+        if(this.middleware.asklessClient.connection == "DISCONNECTED"){
+            this.logger('ignoring sendMessagesToServerAgain, this.internal.connection == "DISCONNECTED"', "debug");
             return;
         }
 
@@ -61,12 +64,12 @@ export class SendClientData {
         for (let i = 0; i < copy.length; i++) {
             if (!copy[i].serverReceived) {
                 const send = copy[i].data;
-                logger('Sending to Server again the message...', "debug");
+                this.logger('Sending to Server again the message...', "debug");
                 try{
-                    wsSend(JSON.stringify(send));
+                    this.ws.send(JSON.stringify(send));
                 }catch (e) {
                     if(e.toString().includes('WebSocket is not open') || e.toString().includes('Still in CONNECTING state')){
-                         logger('Could not send the message because websocket connection is not performed yet', "error", e);
+                         this.logger('Could not send the message because websocket connection is not performed yet', "error", e);
                     }else{
                         throw e;
                     }
@@ -81,37 +84,25 @@ export class SendClientData {
 
         return new Promise(async (resolve, reject) => {
             const json = JSON.stringify(data);
-            logger('Sending to Server...', "debug", data);
-
-            if(Internal.instance.connection != "DISCONNECTED"){
-                try {
-                    wsSend(json);
-                }catch (e) {
-                    if(e.toString().includes('WebSocket is not open') || e.toString().includes('Still in CONNECTING state')){
-                        logger('Could not send the message because the websocket connection is not performed yet', "error", e);
-                    }else{
-                        throw e;
-                    }
-                }
-            }
+            this.logger('Sending to Server...', "debug", data);
 
             const request = new _Request(data, (response) => {
                 resolve(response);
             });
 
-            if (neverTimeout == false && Internal.instance.middleware.connectionConfiguration.requestTimeoutInSeconds > 0) {
+            if (neverTimeout == false && this.middleware.connectionConfiguration.requestTimeoutInSeconds > 0) {
                 setTimeout(() => {
                     const remove = this._pendingRequestsList.find((p) => p.data.clientRequestId == request.data.clientRequestId);
                     if (remove != null) {
-                        logger("TIMEOUT: "+remove.data.clientRequestId, "debug",);
+                        this.logger("TIMEOUT: "+remove.data.clientRequestId, "debug",);
                         this._pendingRequestsList.splice(this._pendingRequestsList.indexOf(remove), 1);
                         request.onResponse(new ResponseCli(data.clientRequestId, null, new ResponseError({
                             code: "TIMEOUT",
                             description: 'Request timed out'
                         })));
-                        logger('Your request timed out, check if: \n\t1)Your server configuration is listening to '+Internal.instance.serverUrl+'\n2) Your device has connection with internet\n\t3)Your API route implementation calls context.respondWithSuccess or context.respondWithError methods', "error");
+                        this.logger('Your request timed out, check if: \n\t1)Your server configuration is listening to '+this.middleware.internal.serverUrl+'\n2) Your device has connection with internet\n\t3)Your API route implementation calls context.respondWithSuccess or context.respondWithError methods', "error");
                     }
-                }, Internal.instance.middleware.connectionConfiguration.requestTimeoutInSeconds * 1000);
+                }, this.middleware.connectionConfiguration.requestTimeoutInSeconds * 1000);
             }
 
             const addAsPending = () => {
@@ -126,14 +117,14 @@ export class SendClientData {
                     .concat(lasts);
             };
 
-            if (Internal.instance.connection != "DISCONNECTED") {
+            if (this.middleware.asklessClient.connection != "DISCONNECTED") {
                 addAsPending();
             } else {
                 if (data.waitUntilGetServerConnection) {
                     addAsPending();
-                    logger('Waiting connection to send message');
+                    this.logger('Waiting connection to send message');
                 } else {
-                    logger('You can\'t send this message while not connected');
+                    this.logger('You can\'t send this message while not connected');
                     request.onResponse(new ResponseCli(
                         data.clientRequestId,
                         null,
@@ -144,6 +135,18 @@ export class SendClientData {
                             }
                         )
                     ));
+                }
+            }
+
+            if(this.middleware.asklessClient.connection != "DISCONNECTED"){
+                try {
+                    this.ws.send(json);
+                }catch (e) {
+                    if(e.toString().includes('WebSocket is not open') || e.toString().includes('Still in CONNECTING state')){
+                        this.logger('Could not send the message because the websocket connection is not performed yet', "error", e);
+                    }else{
+                        throw e;
+                    }
                 }
             }
         });
@@ -160,7 +163,7 @@ export class SendClientData {
             this._pendingRequestsList = [];
 
         if(shouldBeLessThan!=null && this._pendingRequestsList.length >= shouldBeLessThan){
-            logger( 'shouldBeLessThan: '+shouldBeLessThan+ ' _pendingRequestsList.length='+this._pendingRequestsList.length, "error")
+            this.logger( 'shouldBeLessThan: '+shouldBeLessThan+ ' _pendingRequestsList.length='+this._pendingRequestsList.length, "error")
         }
     }
 }
