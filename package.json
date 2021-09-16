@@ -5,15 +5,16 @@
   "author": "Rodrigo João Bertotti <rodrigo@wisetap.dev>",
   "license": "MIT",
   "scripts": {
-    "bundle": "rimraf dist && webpack --env.development && webpack --env.production && npm run copy && npm run copy-debug && npm run copy-package-json && npm run copy-md-files && npm run copy-license && rimraf dist/types && npm run copy-eslintrc && npm run copy-scripts",
+    "bundle": "rimraf dist && webpack --env development && webpack --env production && npm run copy && npm run copy-debug && npm run copy-package-json && npm run copy-md-files && npm run copy-license && rimraf dist/types && npm run copy-eslintrc && npm run copy-scripts",
     "copy": "cpx \"dist/types/**\" \"dist/askless-js-client/node\"",
     "copy-debug": "cpx \"dist/types/**\" \"dist/askless-js-client/node-debug\" && cpx \"dist/types/**\" \"dist/askless-js-client/web-debug\"",
     "copy-eslintrc": "cpx \".eslintrc.json\" \"dist/askless-js-client/node-debug\"  && cpx \".eslintrc.json\" \"dist/askless-js-client/node\"  && cpx \".eslintrc.json\" \"dist/askless-js-client/web-debug\"  && cpx \".eslintrc.json\" \"dist/askless-js-client/web\" ",
     "tracking-ts": "rimraf example/tracking-tscompiled && npm run bundle && npx tsc example/tracking-ts/index.ts --outDir  example/tracking-tscompiled && node example/tracking-tscompiled/index.js",
     "chat-js": "npm run bundle && node example/chat-js/index.js",
-    "catalog-js": "npm run bundle && node example/catalog-js/index.js",
-    "tracking-web": "npm run bundle && cd example/tracking-web/ && npm install && npm run serve",
-    "catalog-web": "npm run bundle && cd example/catalog-web/ && npm install && npm run serve",
+    "catalog-js": "node example/catalog-js/index.js",
+    "catalog-web2": "npm run bundle && cd example/catalog-web/ && npm run i && npm run serve",
+    "catalog-web": "cd example/catalog-web/ && npm run serve",
+    "tracking-web": "cd example/tracking-web/ && npm run serve",
     "copy-package-json": "cpx \"package.json\" \"dist/askless-js-client/\"",
     "copy-md-files": "cpx \"*.md\" \"dist/askless-js-client/\" && cpx \"documentation/*\" \"dist/askless-js-client/documentation/\"",
     "copy-license": "cpx \"LICENSE\" \"dist/askless-js-client/\"",
@@ -67,5 +68,10 @@
   "homepage": "https://github.com/WiseTap/askless-js-client#readme",
   "directories": {
     "example": "example"
+  },
+  "browser": {
+    "fs": false,
+    "os": false,
+    "path": false
   }
 }

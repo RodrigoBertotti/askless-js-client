@@ -1,19 +1,29 @@
 import {SendMessageToServerAgainTask} from "./tasks/SendMessageToServerAgainTask";
 import {SendPingTask} from "./tasks/SendPingTask";
-import {Listening, Middleware} from "./middleware/Middleware";
+import {Listening, Middleware} from "./middleware";
 import {
     ConfigureConnectionResponseCli,
     NewDataForListener,
     ResponseCli,
     ResponseError
-} from "./middleware/data/response/ResponseCli";
-import {ListenCli, ReadCli} from "./middleware/data/request/RequestCli";
-import {CreateCli, DeleteCli, UpdateCli} from "./middleware/data/request/OperationRequestCli";
-import {ConnectionConfiguration} from "./middleware/data/response/ConnectionConfiguration";
+} from "./data/response/ResponseCli";
+import {ListenCli, ReadCli} from "./data/request/RequestCli";
+import {CreateCli, DeleteCli, UpdateCli} from "./data/request/OperationRequestCli";
+import {ConnectionConfiguration} from "./data/response/ConnectionConfiguration";
 import {CLIENT_GENERATED_ID_PREFIX} from "./constants";
 
+export class DisconnectionReason {
 
-export type DisconnectionReason =  'TOKEN_INVALID' | 'UNDEFINED' | 'DISCONNECTED_BY_CLIENT' | 'VERSION_CODE_NOT_SUPPORTED' | 'WRONG_PROJECT_NAME';
+    constructor(public readonly code:DisconnectionReasonCode) {}
+
+    get canReconnect () : boolean {
+        return this.code != "TOKEN_INVALID" &&
+            this.code != "DISCONNECTED_BY_CLIENT" &&
+            this.code != "VERSION_CODE_NOT_SUPPORTED" &&
+            this.code != "WRONG_PROJECT_NAME"
+    }
+}
+export type DisconnectionReasonCode =  'TOKEN_INVALID' | 'UNDEFINED' | 'DISCONNECTED_BY_CLIENT' | 'VERSION_CODE_NOT_SUPPORTED' | 'WRONG_PROJECT_NAME';
 export type Connection = 'CONNECTED_WITH_SUCCESS' | 'CONNECTION_IN_PROGRESS' | 'DISCONNECTED';
 
 export type OnConnectionChangeListener = (connection:Connection) => void;
@@ -25,9 +35,15 @@ function _getDefaultLogger (message:string, level?:Level, additionalData?:any)  
        level = "debug";
 
    const PREFIX = "> askless [" +level.toString().toUpperCase() +"]: ";
-   console.log(PREFIX+message);
-   if(additionalData!=null)
-       console.log(typeof additionalData == "string" ? additionalData : JSON.stringify(additionalData));
+   if(level != "error"){
+       console.log(PREFIX+message);
+       if(additionalData!=null)
+           console.log(typeof additionalData == "string" ? additionalData : JSON.stringify(additionalData));
+   }else{
+       console.error(PREFIX+message);
+       if(additionalData!=null)
+           console.error(typeof additionalData == "string" ? additionalData : JSON.stringify(additionalData));
+   }
 }
 
 export const environment : 'production' | 'development' = process.env.ENV as any;
@@ -75,6 +91,14 @@ export class Internal {
     connection:Connection = "DISCONNECTED";
     disconnectionReason:DisconnectionReason;
     logger: (message: string, level?: Level, additionalData?:any) => void;
+    private _clientGeneratedId: string | number;
+
+    set clientGeneratedId(value) {
+        if(this._clientGeneratedId != null)
+            throw "clientGeneratedId has a value already set";
+        this._clientGeneratedId = value;
+    }
+    get clientGeneratedId () { return this._clientGeneratedId; }
 
     get clientId () {
         return this.middleware.clientId;
@@ -92,10 +116,11 @@ export class Internal {
         this.connection = conn;
         this._onConnectionWithServerChangeListeners.forEach((listener) => listener(conn));
         if(conn=="DISCONNECTED")
-            this.disconnectionReason = disconnectionReason || "UNDEFINED";
+            this.disconnectionReason = disconnectionReason || new DisconnectionReason("UNDEFINED");
     }
 
 }
+
 
 export class AsklessClient {
     private _projectName:string;
@@ -105,7 +130,28 @@ export class AsklessClient {
 
     get logger () { return this.internal.logger; }
 
-    constructor() {}
+    private static canUseSingleton:boolean = true;
+
+    constructor() {
+        AsklessClient.canUseSingleton = false;
+    }
+
+    private static _instance:AsklessClient;
+
+    /**
+     * @deprecated
+     * Askless Singleton pattern is now depreciated, please use the constructor: 'new AsklessClient()' instead of 'AsklessClient.instance'
+     *  */
+    static get instance () : AsklessClient {
+        if(!AsklessClient.canUseSingleton){
+            throw "You should NOT create a new instance \"new AsklessClient()\" while using \"AsklessClient.instance\". Singleton pattern is now depreciated, please use the constructor: \"new AsklessClient()\""
+        }
+        if(!AsklessClient._instance){
+            AsklessClient._instance = new AsklessClient();
+            AsklessClient.canUseSingleton = true;
+        }
+        return AsklessClient._instance;
+    }
 
     /**
      *  Name for this project (optional).
@@ -173,7 +219,7 @@ export class AsklessClient {
         if (params && params.ownClientId && params.ownClientId.toString().startsWith(CLIENT_GENERATED_ID_PREFIX)) //Vai que o usuário insira um id manualmente desse tipo
             throw Error("ownClientId invalid: "+params.ownClientId);
 
-        if(this.internal.middleware.ws?.readyState==0 || this.internal.connection == "CONNECTION_IN_PROGRESS"){
+        if(this.internal.middleware?.wsChannel.ws?.readyState==0 || this.internal.connection == "CONNECTION_IN_PROGRESS"){
             return new ConfigureConnectionResponseCli(
                 null,
                 null,
@@ -196,7 +242,7 @@ export class AsklessClient {
             this._disconnectAndClearByClient();
             this.internal.middleware = new Middleware(this);
         }else{
-            this.internal.middleware.close(true);
+            this.internal.middleware.wsChannel.close(true);
         }
         this._ownClientId = params.ownClientId;
         this._headers = params.headers || {};
@@ -457,7 +503,7 @@ export class AsklessClient {
 
         this._checkEnvironmentToShowWarningsIfNecessary(defaultLogger, params);
 
-        this.logger(`askless-js-client initialized`, "debug");
+        this.logger(`askless-js-client initialized. environment: ${environment}`, "debug");
 
         if(params.serverUrl==null)
             throw Error("params.serverUrl must not be null");
@@ -508,12 +554,16 @@ export class AsklessClient {
 
     private _disconnectAndClearByClient():void {
         this.internal.middleware?.disconnectAndClear(() => {
-            this.internal.disconnectionReason = "DISCONNECTED_BY_CLIENT";
+            this.internal.disconnectionReason = new DisconnectionReason("DISCONNECTED_BY_CLIENT");
         });
     }
 }
+module.exports = AsklessClient;
 
-export {Listening, } from "./middleware/Middleware";
-export {NewDataForListener} from "./middleware/data/response/ResponseCli";
+/** @deprecated Please use require("askless-js-client/node") / require("askless-js-client/web") instead */
+module.exports.AsklessClient = AsklessClient;
+
+export {Listening, } from "./middleware";
+export {NewDataForListener} from "./data/response/ResponseCli";
 
 

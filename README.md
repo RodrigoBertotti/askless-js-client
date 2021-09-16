@@ -57,10 +57,10 @@ follow the server instructions in the section "Getting Started"
 ES5:
  
     // If you will run on the browser
-    const AsklessClient = require("askless-js-client/web").AsklessClient; 
+    const AsklessClient = require("askless-js-client/web") 
     
     // If you will run on Node.js environment
-    const AsklessClient = require("askless-js-client/node").AsklessClient; 
+    const AsklessClient = require("askless-js-client/node") 
 
 ES6:
 
@@ -70,9 +70,10 @@ ES6:
     
     import {AsklessClient} from "askless-js-client/node";
 
-4 - Create an instance of the Askless client
+4 - Create an instance of the Askless client, and export it 
+for your entire project
 
-    const asklessClient = new AsklessClient();
+    export const asklessClient = new AsklessClient();
 
 5 - Initialize
 informing the server url with port (default: 3000). 

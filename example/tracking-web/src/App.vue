@@ -16,12 +16,11 @@
 //-> Node App:
 //   import { AsklessClient } from "askless-js-client/node";
 //      OR
-//   const AsklessClient = require("askless-js-client/node").AsklessClient;
+//   const AsklessClient = require("askless-js-client/node")
 //-> Web App:
 //   import { AsklessClient } from "askless-js-client/web";
 //      OR
-//   const AsklessClient = require("askless-js-client/web").AsklessClient;
-
+//   const AsklessClient = require("askless-js-client/web")
 import { AsklessClient, NewDataForListener } from "../../../dist/askless-js-client/web-debug";
 
 const asklessClient = new AsklessClient();

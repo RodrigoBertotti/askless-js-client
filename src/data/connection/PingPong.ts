@@ -1,4 +1,4 @@
-import {SuperListeningTo} from "../../Middleware";
+import {SuperListeningTo} from "../../middleware";
 
 
 export class PingPong {

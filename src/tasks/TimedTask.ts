@@ -1,4 +1,3 @@
-import {setInterval} from "timers";
 
 
 export abstract class TimedTask {

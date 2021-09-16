@@ -3,7 +3,8 @@ import {environment} from "./index";
 
 export function assert(expression, text?:string){
     if(environment == "development") {
-        require('assert')(expression, text);
+        if(!expression)
+            throw text;
     }
 }
 

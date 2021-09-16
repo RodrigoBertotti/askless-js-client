@@ -2,18 +2,21 @@
 //-> Node App:
 //   import { AsklessClient } from "askless-js-client/node";
 //      OR
-//   const AsklessClient = require("askless-js-client/node").AsklessClient;
+//   const AsklessClient = require("askless-js-client/node")
 //-> Web App:
 //   import { AsklessClient } from "askless-js-client/web";
 //      OR
-//   const AsklessClient = require("askless-js-client/web").AsklessClient;
-const AsklessClient = require("../../dist/askless-js-client/node-debug").AsklessClient;
+//   const AsklessClient = require("askless-js-client/web")
+const AsklessClient = require("../../dist/askless-js-client/node-debug");
 
 const asklessClient = new AsklessClient();
 
 asklessClient.init({
     serverUrl: 'ws://192.168.2.1:3000',
     projectName: 'catalog',
+    logger: {
+        useDefaultLogger: true,
+    },
 });
 console.log('Started');
 
@@ -76,6 +79,7 @@ function deleteProduct(id) {
 /// Listen for new products with view only permissions
 /// No error should be returned
 function test1AsViewOnlyPermission() {
+    console.log('test1AsViewOnlyPermission');
     connectViewOnly()
         .then((res) => {
             console.log('connectViewOnly result');
@@ -93,6 +97,7 @@ function test1AsViewOnlyPermission() {
 
 /// Connection will not be attempt
 function test2AsInvalidToken() {
+    console.log('test2AsInvalidToken');
     connectInvalidToken()
         .then((res) => {
             console.log('connectInvalidToken result');
@@ -106,6 +111,7 @@ function test2AsInvalidToken() {
 
 
 function test3AsAdminPermission() {
+    console.log('test3AsAdminPermission');
     connectAdmin()
         .then((res) => {
             console.log('connectViewOnly result');

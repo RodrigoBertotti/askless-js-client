@@ -42,6 +42,11 @@ The URL of the server, must start with `ws://` or `wss://`. Example: `ws://192.1
 
 ##### Example
 
+    // Reuse this instance in different pages of your App
+    export const asklessClient = new AsklessClient(); 
+
+...
+
     asklessClient.init({
         serverUrl: 'ws://192.168.2.1:3000',
         projectName: 'MyApp',

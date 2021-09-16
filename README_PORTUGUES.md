@@ -57,10 +57,10 @@ siga as instruções do servidor na seção "Começando"
 ES5:
 
     // Se você vai executar no navegador
-    const AsklessClient = require("askless-js-client/web").AsklessClient; 
+    const AsklessClient = require("askless-js-client/web") 
     
     // Se você vai executar como um cliente Node.js
-    const AsklessClient = require("askless-js-client/node").AsklessClient; 
+    const AsklessClient = require("askless-js-client/node") 
 
 ES6:
 
@@ -70,11 +70,13 @@ ES6:
     
     import {AsklessClient} from "askless-js-client/node";
 
-4 - Crie uma instância do cliente Askless:
+4 - Crie uma instância do cliente Askless e exporte para 
+todo o seu projeto:
 
-    const asklessClient = new AsklessClient();
+    export const asklessClient = new AsklessClient();
 
-5 - Inicialize o servidor informando o endereço IPv4 da rede local obtido e a porta (padrão: 3000).
+5 - Inicialize o servidor informando o endereço IPv4 da rede local obtido
+e a porta (padrão: 3000).
 
 
 6 - Realize a conexão com o servidor com `asklessClient.connect()`

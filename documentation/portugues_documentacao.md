@@ -41,6 +41,11 @@ Permite criar a própria implementação do logger (opcional). Deixe `null` em u
 
 ##### Exemplo
 
+    // Reutilize essa instância em diferentes páginas do seu App
+    export const asklessClient = new AsklessClient(); 
+
+...
+
     asklessClient.init({
         serverUrl: 'ws://192.168.2.1:3000',
         projectName: 'MyApp',

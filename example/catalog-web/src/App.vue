@@ -64,9 +64,9 @@
 </template>
 
 <script>
+import {asklessClient} from "./AsklessClient";
 import Connection from '@/components/Connection.vue';
 import ShowingProductsByListeningToARoute from "@/components/ShowingProductsByListeningToARoute";
-import {asklessClient} from "./AsklessClient";
 
 export default {
   name: 'catalog-web',
@@ -168,6 +168,8 @@ export default {
           'id': params.id
         },
       })
+      console.log('------------- RESPONSE ------------------');
+      console.log(res);
       if(res.isSuccess()){
         this.$buefy.snackbar.open({
           message: params.name + ' removed',
