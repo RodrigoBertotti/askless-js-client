@@ -5,10 +5,17 @@
     "declaration": true,
     "outDir": "dist/types",
     "moduleResolution": "node",
-    "stripInternal": true
+    "stripInternal": true,
+    "removeComments": true,
+    "allowJs": true,
+    "resolveJsonModule": true
   },
+  "include": [
+    "./src/**/*"
+  ],
   "exclude": [
     "node_modules",
-    "example"
+    "example",
+    "scripts"
   ]
 }

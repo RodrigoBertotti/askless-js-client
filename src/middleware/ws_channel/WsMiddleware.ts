@@ -1,39 +1,59 @@
-import {Internal,} from "../../index";
-import {Utils} from "../../utils";
+import {assert, wait} from "../../utils";
+
 const WebSocket = require('isomorphic-ws');
 import {Middleware} from "../index";
 import {URL} from "url";
-import {ClientRequestArgs} from "http";
+
+export type WsMiddlewareParams = {
+    address: string | URL,
+    options?,
+    readonly middleware:Middleware,
+};
+
+export function newInstanceWsMiddleware(params:WsMiddlewareParams) : AbstractWsMiddleware {
+    return new WsMiddleware(params);
+}
 
 export abstract class AbstractWsMiddleware {
+    private _onopen; //TODO: typed
+    private _onmessage;
+    private _onclose;
+    private _onerror;
 
-    set onopen (onopen){}
-    set onmessage (onmessage){}
-    set onclose (onclose: (this: WebSocket, ev: CloseEvent) => any){ }
-    set onerror (onerror){ }
+    protected constructor(readonly params: WsMiddlewareParams){}
+
+    set onopen (value){this._onopen = value;}  //TODO: typed
+    set onmessage (onmessage){this._onmessage = onmessage;}
+    set onclose (onclose: (this: WebSocket, ev: CloseEvent) => any){this._onclose = onclose;}
+    set onerror (onerror){this._onerror = onerror;}
+
+    get onopen () {return this._onopen;}  //TODO: typed
+    get onmessage () {return this._onmessage;}
+    get onclose () {return this._onclose;}
+    get onerror () {return this._onerror;}
 
     get readyState (){ return -100; };
 
     close(code?: number, reason?: string) {};
 
-    protected constructor(readonly middleware:Middleware){}
-
-    get logger () {return this.middleware.logger;}
+    get logger () {return this.params.middleware.logger;}
 
     send(data:string): void {};
 
-    static newInstance(params:{
-        address: string | URL,
-        options?,
-        readonly middleware:Middleware,
-    }) : AbstractWsMiddleware {
-        return new WsMiddleware(params);
-    }
+    performConnectionOnce(): void {};
+
 }
 
-/** @internal */
-class WsMiddleware extends AbstractWsMiddleware{
-    private readonly ws:WebSocket;
+export class WsMiddleware extends AbstractWsMiddleware{
+    private ___ws:WebSocket;
+
+    get ws () : WebSocket {
+        if(this.___ws == null){
+            this.performConnectionOnce();
+        }
+        assert(this.___ws);
+        return this.___ws;
+    }
 
     //override
     set onopen (onopen){ this.ws.onopen = onopen; }
@@ -60,18 +80,26 @@ class WsMiddleware extends AbstractWsMiddleware{
             readonly middleware:Middleware,
         }
     ){
-        super(params.middleware);
-        this.ws = new WebSocket(params.address, params.options);
+        super(params);
     }
 
-    get logger () {return this.middleware.logger;}
+    //override
+    performConnectionOnce () {
+        if(!this.___ws) {
+            this.___ws = new WebSocket(this.params.address, this.params.options);
+        }
+    }
 
+    //override
+    get logger () {return this.params.middleware.logger;}
+
+    //override
     send(data:string): void {
         (
             async () => {
                 for(let i=0; this.readyState == 0 && i<15; i++){  //<-- TODO: analisar se é necessário fazer no cliente em flutter (clicar em reconectar com a mesma conexão várias vezes)
                     this.logger('waiting websocket connection to be with readyState != 0');
-                    await Utils.wait(200); //TODO: improve this solution
+                    await wait(200); //TODO: improve this solution
                 }
                 if(this.readyState!=1){
                     this.logger('ignoring sending message, because websocket readyState is '+this.readyState, "error");
@@ -82,4 +110,5 @@ class WsMiddleware extends AbstractWsMiddleware{
         )()
     }
 }
+
 

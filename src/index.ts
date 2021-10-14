@@ -9,8 +9,17 @@ import {
 } from "./data/response/ResponseCli";
 import {ListenCli, ReadCli} from "./data/request/RequestCli";
 import {CreateCli, DeleteCli, UpdateCli} from "./data/request/OperationRequestCli";
-import {ConnectionConfiguration} from "./data/response/ConnectionConfiguration";
 import {CLIENT_GENERATED_ID_PREFIX} from "./constants";
+import {assert, environment} from "./utils";
+import {Connection, DisconnectionReasonCode, OnConnectionChangeListener} from "./connection";
+import {Level, LoggerFunction} from "./logger";
+
+
+
+
+
+
+
 
 export class DisconnectionReason {
 
@@ -23,12 +32,6 @@ export class DisconnectionReason {
             this.code != "WRONG_PROJECT_NAME"
     }
 }
-export type DisconnectionReasonCode =  'TOKEN_INVALID' | 'UNDEFINED' | 'DISCONNECTED_BY_CLIENT' | 'VERSION_CODE_NOT_SUPPORTED' | 'WRONG_PROJECT_NAME';
-export type Connection = 'CONNECTED_WITH_SUCCESS' | 'CONNECTION_IN_PROGRESS' | 'DISCONNECTED';
-
-export type OnConnectionChangeListener = (connection:Connection) => void;
-export type Level = 'info' | 'warning' | 'debug' | 'error';
-export type LoggerFunction = (message:string, level?:Level, additionalData?:any) => void;
 
 function _getDefaultLogger (message:string, level?:Level, additionalData?:any)  {
    if(!level || !level.toString().length)
@@ -45,8 +48,6 @@ function _getDefaultLogger (message:string, level?:Level, additionalData?:any)  
            console.error(typeof additionalData == "string" ? additionalData : JSON.stringify(additionalData));
    }
 }
-
-export const environment : 'production' | 'development' = process.env.ENV as any;
 
 /**
  * Allow to customize the behavior of internal logs and enable/disable the default logger (optional).
@@ -83,14 +84,14 @@ export class LoggerParam {
 export class Internal {
     tasksStarted:boolean = false;
     readonly sendMessageToServerAgainTask:SendMessageToServerAgainTask = new SendMessageToServerAgainTask(this);
-    readonly sendPingTask:SendPingTask = new SendPingTask(this);
+    readonly sendPingTask:SendPingTask = new SendPingTask(() => this.middleware);
     //reconnectWhenOffline:ReconnectWhen
     serverUrl:string;
     middleware:Middleware;
     _onConnectionWithServerChangeListeners:Array<OnConnectionChangeListener> = [];
     connection:Connection = "DISCONNECTED";
     disconnectionReason:DisconnectionReason;
-    logger: (message: string, level?: Level, additionalData?:any) => void;
+    logger: LoggerFunction;
     private _clientGeneratedId: string | number;
 
     set clientGeneratedId(value) {
@@ -240,7 +241,7 @@ export class AsklessClient {
 
         if(this.internal.middleware==null || this.internal.serverUrl!=this.serverUrl || params.ownClientId != params.ownClientId){
             this._disconnectAndClearByClient();
-            this.internal.middleware = new Middleware(this);
+            this.internal.middleware = new Middleware(this);;
         }else{
             this.internal.middleware.wsChannel.close(true);
         }

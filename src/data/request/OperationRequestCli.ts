@@ -1,5 +1,4 @@
-import {AbstractRequestCli} from "./RequestCli";
-import {RequestType} from "../Types";
+import {AbstractRequestCli, RequestType} from "./RequestCli";
 
 abstract class _ModifyCli extends AbstractRequestCli{
   readonly _class_type_modify = '_';

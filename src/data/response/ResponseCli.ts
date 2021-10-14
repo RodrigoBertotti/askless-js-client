@@ -1,9 +1,8 @@
-import {ResponseErrorCode} from "../Types";
 import {ConnectionConfiguration} from "./ConnectionConfiguration";
+import {assert, environment} from "../../utils";
 
-export type OnClientSuccessfullyReceives = (clientId: number | string) => void;
+export type ResponseErrorCode = "PERMISSION_DENIED" | "BAD_REQUEST" | "NEED_CONFIGURE_HEADERS" | "INTERNAL_ERROR" | "TOKEN_INVALID" | "LAST_CONNECTION_ATTEMPT_IS_STILL_IN_PROGRESS";
 
-export type OnClientFailsToReceive = (clientId: number | string) => void;
 
 export interface ResponseErrorParams {
     code?: ResponseErrorCode | string;
@@ -32,6 +31,9 @@ export interface RespondSuccessParams {
     onClientSuccessfullyReceives?: OnClientSuccessfullyReceives;
     onClientFailsToReceive?: OnClientFailsToReceive;
 }
+
+export type OnClientSuccessfullyReceives = (clientId: number | string) => void;
+export type OnClientFailsToReceive = (clientId: number | string) => void;
 
 /**
  * The response of an operation in the server.
@@ -93,8 +95,8 @@ export class ServerConfirmReceiptCli extends ResponseCli {
     private readonly _class_type_serverconfirmreceipt = "_";
     static type = '_class_type_serverconfirmreceipt';
 
-    constructor(clientRequestId: string) {
-        super(clientRequestId, "RECEIVED", null, "ServerConfirmReceiptCli");
+    constructor(clientRequestId: string, serverId?:string) {
+        super(clientRequestId, "RECEIVED", null, "ServerConfirmReceiptCli", serverId);
     }
 }
 
@@ -102,12 +104,13 @@ export class ConfigureConnectionResponseCli extends ResponseCli {
     private readonly _class_type_configureconnection = "_";
     static type = '_class_type_configureconnection';
 
-    constructor(clientRequestId: string, connectionConfiguration:ConnectionConfiguration, err?:ResponseError) {
+    constructor(clientRequestId: string, connectionConfiguration:ConnectionConfiguration, err?:ResponseError, serverId?: string) {
         super(
             clientRequestId,
             connectionConfiguration,
             err,
-            "ConfigureConnectionResponse"
+            "ConfigureConnectionResponse",
+            serverId
         );
     }
 }
@@ -122,7 +125,10 @@ export class NewDataForListener {
 
     constructor(
         public readonly output: any,
-        public readonly listenId: string
-    ) {}
+        public readonly listenId: string,
+        serverId?:string
+    ) {
+        this.serverId = serverId;
+    }
 
 }

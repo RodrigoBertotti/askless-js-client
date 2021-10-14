@@ -32,7 +32,10 @@ module.exports = env => {
                 rules: [
                     {
                         test: /\.ts$/,
-                        exclude: /node_modules/,
+                        exclude: [
+                            /node_modules/,
+                            /scripts/
+                        ],
                         use: [
                             {
                                 loader: "babel-loader",

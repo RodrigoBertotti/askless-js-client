@@ -6,7 +6,8 @@ import {ClientReceivedNewDataForListener} from "./ClientReceivedNewDataForListen
 import {ClientReceivedResponse} from "./ClientReceivedResponse";
 import {ClientReceived} from "./ClientReceived";
 import {assert} from "../../../utils";
-import {environment} from "../../../index";
+import {NewDataForListener} from "../../../index";
+import {ConfigureConnectionResponseCli, ResponseCli, ServerConfirmReceiptCli} from "../../../data/response/ResponseCli";
 
 export function newClientReceivedFrom(data, middleware:Middleware) : ClientReceived {
     assert(data != null, 'data should not be null');
@@ -22,15 +23,15 @@ export function newClientReceivedFrom(data, middleware:Middleware) : ClientRecei
     assert(data != null, '#2 messageMap should not be null');
 
     if(data['serverId']==null)
-        throw 'Unknown: '+data.toString();
+        throw 'Unknown: '+JSON.stringify(data);
 
-    if(data['_class_type_configureconnection'])
+    if(data[ConfigureConnectionResponseCli.type])
         return new ClientReceivedConfigureConnectionResponse(data, middleware);
-    if(data['_class_type_serverconfirmreceipt'])
+    if(data[ServerConfirmReceiptCli.type])
         return new ClientReceivedServerConfirmReceipt(data, middleware);
-    if(data['_class_type_newDataForListener'])
+    if(data[NewDataForListener.type])
         return new ClientReceivedNewDataForListener(data, middleware);
-    if(data['_class_type_response'])
+    if(data[ResponseCli.type])
         return new ClientReceivedResponse(data, middleware);
 
     throw "TODO: "+data.toString();

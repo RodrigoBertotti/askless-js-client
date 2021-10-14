@@ -18,20 +18,27 @@ asklessClient.init({
 });
 
 
-asklessClient.connect();
+asklessClient.connect().then((connection) => {
+    if(!connection.isSuccess()){
+        console.error(connection.error);
+        return;
+    }
+    console.log("connected with success")
+    const listening = asklessClient.listen({
+        route: 'product/tracking-ts',
+        listener: data => {
+            console.log("NEW DATA RECEIVED: ");
+            console.log(data);
+        },
+    });
 
-const listening = asklessClient.listen({
-    route: 'product/tracking-ts',
-    listener: data => {
-        console.log("NEW DATA RECEIVED: ");
-        console.log(data);
-    },
+
+    console.log("Tracking Client");
+
+// setTimeout(() => {
+//     listening.close();
+//     console.log("Stopped listening after 120 seconds");
+// }, 120 * 1000);
+
 });
 
-
-console.log("Tracking Client");
-
-setTimeout(() => {
-    listening.close();
-    console.log("Stopped listening");
-}, 60 * 1000);

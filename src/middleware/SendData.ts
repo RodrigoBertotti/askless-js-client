@@ -1,13 +1,11 @@
 import {Middleware} from "./index";
-import {ResponseError, ResponseCli} from "../data/response/ResponseCli";
-import {AbstractRequestCli, ListenCli} from "../data/request/RequestCli";
-import {Internal,} from "../index";
-import {RequestType} from "../data/Types";
-import {assert, Utils} from "../utils";
-import {AbstractWsMiddleware,} from "./ws_channel/WsMiddleware";
+import {AbstractRequestCli, ListenCli, RequestType} from "../data/request/RequestCli";
+import {AbstractWsMiddleware} from "./ws_channel/WsMiddleware";
+import {ResponseCli, ResponseError} from "../data/response/ResponseCli";
+import {assert} from "../utils";
+/*import {AbstractWsMiddleware,} from "./ws_channel/WsMiddleware";*/
 
 export type OnResponseCallback = (response:ResponseCli) => void;
-export type SendDataListener = (data:AbstractRequestCli) => void;
 
 class _Request {
     serverReceived:boolean = false;
@@ -21,7 +19,9 @@ export class SendClientData {
 
     get ws (): AbstractWsMiddleware { return this.middleware.wsChannel.ws; }
 
-    constructor(public readonly middleware: Middleware) {}
+    constructor(public readonly middleware: Middleware) {
+        assert(middleware!=null);
+    }
 
     get logger () { return this.middleware.logger; }
 
@@ -37,8 +37,6 @@ export class SendClientData {
             this._pendingRequestsList.splice(this._pendingRequestsList.indexOf(req), 1);
             return true;
         } else {
-            // console.log(JSON.parse(JSON.stringify(this._pendingRequestsList)));
-            // console.log('(response.clientRequestId -> '+response.clientRequestId);
             this.logger("Response received: "+response.clientRequestId+", but did nothing, probably because the request timed out before");
             return false;
         }
@@ -51,30 +49,12 @@ export class SendClientData {
     }
 
 
-    async sendMessagesToServerAgain(): Promise<void> {
-        if(this.middleware.asklessClient.connection == "DISCONNECTED"){
-            this.logger('ignoring sendMessagesToServerAgain, this.internal.connection == "DISCONNECTED"', "debug");
-            return;
-        }
 
-        for (let pending of Array.from(this._pendingRequestsList)){
-            if (!pending.serverReceived) {
-                this.logger('Sending to Server again the message...', "debug");
-                try{
-                    this.ws.send(JSON.stringify(pending.data));
-                }catch (e) {
-                    if(e.toString().includes('WebSocket is not open') || e.toString().includes('Still in CONNECTING state')){
-                        this.logger('Could not send the message because websocket connection is not performed yet', "error", e);
-                    }else{
-                        throw e;
-                    }
-                }
-            }
-        }
-    }
 
     send(data: AbstractRequestCli, neverTimeout?: boolean): Promise<ResponseCli> {
         const checkIfIsNeededToSetRequestTimeout = (request:_Request) : void => {
+            assert(this.middleware != null, 'checkIfIsNeededToSetRequestTimeout middleware is null');
+
             if (neverTimeout == false && this.middleware.connectionConfiguration.requestTimeoutInSeconds > 0) {
                 setTimeout(() => {
                     const remove = this._pendingRequestsList.find((p) => p.data.clientRequestId == request.data.clientRequestId);
@@ -169,6 +149,30 @@ export class SendClientData {
 
         if(shouldBeLessThan!=null && this._pendingRequestsList.length >= shouldBeLessThan){
             this.logger( 'shouldBeLessThan: '+shouldBeLessThan+ ' _pendingRequestsList.length='+this._pendingRequestsList.length, "error")
+        }
+    }
+
+    async sendMessagesToServerAgain(): Promise<void> {
+        assert(this.middleware!=null);
+
+        if(this.middleware.asklessClient.connection == "DISCONNECTED"){
+            this.logger('ignoring sendMessagesToServerAgain, this.internal.connection == "DISCONNECTED"', "debug");
+            return;
+        }
+
+        for (let pending of Array.from(this._pendingRequestsList)){
+            if (!pending.serverReceived) {
+                this.logger('Sending to Server again the message...', "debug");
+                try{
+                    this.ws.send(JSON.stringify(pending.data));
+                }catch (e) {
+                    if(e.toString().includes('WebSocket is not open') || e.toString().includes('Still in CONNECTING state')){
+                        this.logger('Could not send the message because websocket connection is not performed yet', "error", e);
+                    }else{
+                        throw e;
+                    }
+                }
+            }
         }
     }
 }

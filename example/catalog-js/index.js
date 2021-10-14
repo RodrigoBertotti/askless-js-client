@@ -92,6 +92,9 @@ function test1AsViewOnlyPermission() {
                 .then((res) => {
                     console.log("Shampoo created? "+res.isSuccess());
                 });
+        }).catch((error) => {
+            console.error("AN ERROR OCCURRED:");
+            console.error(error);
         });
 }
 
@@ -106,6 +109,9 @@ function test2AsInvalidToken() {
             //because the connection failed
             //this request will not be attempt
             listenToProducts();
+        }).catch((error) => {
+            console.error("AN ERROR OCCURRED:");
+            console.error(error);
         });
 }
 
@@ -132,6 +138,10 @@ function test3AsAdminPermission() {
                                 });
                         });
                 });
+        })
+        .catch((error) => {
+            console.error("AN ERROR OCCURRED:");
+            console.error(error);
         });
 }
 

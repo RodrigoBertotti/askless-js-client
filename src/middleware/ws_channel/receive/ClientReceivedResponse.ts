@@ -1,6 +1,6 @@
 import {Middleware} from "../../index";
-import {NewDataForListener, ResponseCli} from "../../../data/response/ResponseCli";
 import {ClientReceived} from "./ClientReceived";
+import {ResponseCli} from "../../../data/response/ResponseCli";
 
 /** @internal */
 export class ClientReceivedResponse extends ClientReceived{

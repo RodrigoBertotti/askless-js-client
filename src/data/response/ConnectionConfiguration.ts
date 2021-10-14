@@ -1,5 +1,5 @@
 
-
+export const DEFAULT_REQUEST_TIMEOUT_IN_SECONDS = 15;
 
 export class ConnectionConfiguration {
 
@@ -12,9 +12,9 @@ export class ConnectionConfiguration {
     clientVersionCodeSupported: {
         lessThanOrEqual:number,
         moreThanOrEqual:number,
-    };
+    } = {moreThanOrEqual: null, lessThanOrEqual: null};
     isFromServer:boolean = false;
     projectName:string;
-    requestTimeoutInSeconds:number = 15;
+    requestTimeoutInSeconds:number = DEFAULT_REQUEST_TIMEOUT_IN_SECONDS;
 
 }

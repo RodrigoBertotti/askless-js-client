@@ -1,10 +1,10 @@
 import {ClientReceived} from "./ClientReceived";
-import {ConfigureConnectionResponseCli, ServerConfirmReceiptCli} from "../../../data/response/ResponseCli";
-import {ConnectionConfiguration} from "../../../data/response/ConnectionConfiguration";
 import {CLIENT_LIBRARY_VERSION_CODE, CLIENT_LIBRARY_VERSION_NAME} from "../../../constants";
 import {assert} from "../../../utils";
 import {Middleware} from "../../index";
 import {DisconnectionReason} from "../../../index";
+import {ConfigureConnectionResponseCli} from "../../../data/response/ResponseCli";
+import {ConnectionConfiguration} from "../../../data/response/ConnectionConfiguration";
 
 /** @internal */
 export class ClientReceivedConfigureConnectionResponse extends ClientReceived {
@@ -21,7 +21,13 @@ export class ClientReceivedConfigureConnectionResponse extends ClientReceived {
             this.logger("notifyServerResponseResult is false, ignoring ConfigureConnectionResponseCli");
             return;
         }
-        this.getMiddleware().onReceiveConnectionConfigurationFromServer(serverConnectionReadyCli); //Terminou de conectar
+        try{
+            this.checkIfIsNeededToStopConnectionFromBeingEstablished(serverConnectionReadyCli.output as ConnectionConfiguration);
+        }catch (e){
+            this.getMiddleware().connectionAttempt.reject(e);
+            return;
+        }
+        this.getMiddleware().connectionAttempt.resolve(serverConnectionReadyCli); //Terminou de conectar
         this.connectionReady(serverConnectionReadyCli.output);
     }
 
@@ -34,7 +40,12 @@ export class ClientReceivedConfigureConnectionResponse extends ClientReceived {
             throw ("connectionConfiguration is null");
         }
 
-        this.checkIfIsNeededToStopConnectionFromBeingEstablished(connectionConfiguration);
+        try{
+            this.checkIfIsNeededToStopConnectionFromBeingEstablished(connectionConfiguration);
+        }catch (e){
+            this.getMiddleware().connectionAttempt.reject(e);
+            return;
+        }
 
         this.getMiddleware().internal.sendPingTask.changeInterval(connectionConfiguration.intervalInSecondsClientPing);
 

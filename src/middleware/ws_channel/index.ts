@@ -1,14 +1,13 @@
 import {CLIENT_GENERATED_ID_PREFIX} from "../../constants";
-import {assert, Utils} from "../../utils";
-import {ConnectionConfiguration} from "../../data/response/ConnectionConfiguration";
-import {ConfigureConnectionResponseCli, ResponseCli, ResponseError} from "../../data/response/ResponseCli";
-import {ConfigureConnectionRequestCli} from "../../data/request/RequestCli";
-import {RequestType} from "../../data/Types";
+import {assert, makeId, wait,} from "../../utils";
+import {ConfigureConnectionRequestCli, RequestType} from "../../data/request/RequestCli";
 import {Middleware} from "../index";
 import {DisconnectionReason} from "../../index";
-import {newClientReceivedFrom} from "./receivements";
-import {AbstractWsMiddleware} from "./WsMiddleware";
+import {AbstractWsMiddleware, newInstanceWsMiddleware,} from "./WsMiddleware";
 import {SendClientData} from "../SendData";
+import {ConnectionConfiguration} from "../../data/response/ConnectionConfiguration";
+import {ConfigureConnectionResponseCli, ResponseCli, ResponseError} from "../../data/response/ResponseCli";
+import {newClientReceivedFrom} from "./receive";
 
 
 export class AbstractWsChannel {
@@ -20,14 +19,16 @@ export class AbstractWsChannel {
     private onReceiveConnectionConfigurationFromServer:(connectionConfiguration:ConfigureConnectionResponseCli) => void;
     private _disconnectAndClearOnDone: VoidFunction = () => {};
     private response:ResponseCli;
-    public readonly sendClientData:SendClientData = new SendClientData(this.middleware);
+    public readonly sendClientData:SendClientData
+    public readonly middleware:Middleware;
 
     get ws () {return this._ws; }
     get logger () { return this.middleware.logger; }
 
-    constructor(
-        public readonly middleware:Middleware,
-    ) {}
+    constructor(middleware:Middleware,) {
+        this.middleware = middleware;
+        this.sendClientData = new SendClientData(middleware);
+    }
 
     get clientId () {return this._clientId; }
 
@@ -36,7 +37,7 @@ export class AbstractWsChannel {
             this.logger('resolveConnect: waiting disconnect to finish');
             const LIMIT = 300;
             for(let i=0; this._ws != null && (this._ws.readyState == 2) && i<LIMIT; i++){
-                await Utils.wait(10);
+                await wait(10);
             }
             if(this._ws) {
                 this.logger('resolveConnect: disconnect finished because of limit has been limitReached, continuing the resolveConnect method...', "error");
@@ -64,7 +65,7 @@ export class AbstractWsChannel {
         const configureClientId = () => {
             if (ownClientId == null) {
                 if (this.middleware.internal.clientGeneratedId == null) {
-                    this._clientId = ownClientId = this.middleware.internal.clientGeneratedId = CLIENT_GENERATED_ID_PREFIX + Utils.makeId(15);
+                    this._clientId = ownClientId = this.middleware.internal.clientGeneratedId = CLIENT_GENERATED_ID_PREFIX + makeId(15);
                     this.logger("New client client generated id: " + this.middleware.internal.clientGeneratedId);
                 } else {
                     this.logger("Using the same client generated id: " + this.middleware.internal.clientGeneratedId);
@@ -89,15 +90,16 @@ export class AbstractWsChannel {
         this.logger("middleware: connect");
 
         try{
-            this._ws = AbstractWsMiddleware.newInstance({
+            this._ws = newInstanceWsMiddleware({
                 middleware: this.middleware,
                 address: this.middleware.internal.serverUrl,
             });
-            this._ws['__id__'] = Utils.makeId(11);
+            this._ws['__id__'] = makeId(11);
             this._ws.onopen = this.onopen;
             this._ws.onmessage = (event) => this.onmessage(event.data);
             this._ws.onclose = this.onclose;
             this._ws.onerror = this.onerror;
+            this._ws.performConnectionOnce();
         }catch (e) {
             if((e.toString() as string).includes('WebSocket is not a constructor')){
                 throw Error("Probably wrong import, try importing as \"askless-js-client/node\" instead");
@@ -111,6 +113,7 @@ export class AbstractWsChannel {
         try {
             this.logger("_ws.on OPEN - clientId: "+this.clientId);
             assert(this.clientId != null, 'this.clientId is null');
+            assert(this._ws != null, 'this._ws is null');
 
             if (this._ws['__invalid__']) {
                 this._ws.close();
@@ -174,7 +177,7 @@ export class AbstractWsChannel {
 
             this.updateDisconnectionReason(this.response?.error);
 
-            if (!this._ws['__invalid__']) {
+            if ((this._ws != null) && !this._ws['__invalid__']) {
                 this._ws['__invalid__'] = true;
                 setTimeout(() => {
                     if (this.middleware.internal.connection === "DISCONNECTED") {
@@ -210,7 +213,7 @@ export class AbstractWsChannel {
 
 
     readonly onerror = (err) => {
-        this.logger("middleware: channel.stream.listen onError: " + (err?.toString() || 'null'), 'error', JSON.stringify(err));
+        this.logger("middleware: channel.stream.listen onError: " + (!err ? 'null' : JSON.stringify(err)), 'error', JSON.stringify(err));
     }
 
 

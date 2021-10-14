@@ -1,30 +1,14 @@
-import {Stream} from "stream";
-import {SendClientData} from "./SendData";
-import {DisconnectionReason, Internal, AsklessClient} from "../index";
-import {ConnectionConfiguration} from "../data/response/ConnectionConfiguration";
-import {
-    ConfigureConnectionResponseCli,
-    NewDataForListener,
-    ResponseError,
-    ResponseCli
-} from "../data/response/ResponseCli";
+import {Internal, AsklessClient, NewDataForListener} from "../index";
 import {
     AbstractRequestCli,
-    ClientConfirmReceiptCli,
-    ConfigureConnectionRequestCli,
     ListenCli
 } from "../data/request/RequestCli";
 import {
-    CLIENT_GENERATED_ID_PREFIX,
-    CLIENT_LIBRARY_VERSION_CODE,
-    CLIENT_LIBRARY_VERSION_NAME,
     LISTEN_PREFIX, REQUEST_PREFIX
 } from "../constants";
-import {assert, Utils} from "../utils";
-import {RequestType} from "../data/Types";
-import {ClientReceived} from "./ws_channel/receivements/ClientReceived";
-import {AbstractWsMiddleware} from "./ws_channel/WsMiddleware";
 import {AbstractWsChannel} from "./ws_channel";
+import {ConfigureConnectionResponseCli, ResponseCli, ResponseError} from "../data/response/ResponseCli";
+import {ConnectionConfiguration} from "../data/response/ConnectionConfiguration";
 
 /**
  * Listening for new data from the server after call the method {@link setListener}.
@@ -47,9 +31,9 @@ export class Listening { //ChildListeningTo
      * */
     setListener(listener: (data: NewDataForListener) => void) {
         this.listener = listener;
-        const lastReceivementFromServer = this.getLastReceivementFromServer();
-        if (lastReceivementFromServer != null) {
-            this.listener(lastReceivementFromServer);
+        const lastReceiveFromServer = this.getLastReceiveFromServer();
+        if (lastReceiveFromServer != null) {
+            this.listener(lastReceiveFromServer);
         }
     }
 
@@ -66,13 +50,13 @@ export class Listening { //ChildListeningTo
         public readonly listenId: string,
         /** Stop receiving realtime data from server */
         public readonly close: VoidFunction,
-        private readonly getLastReceivementFromServer: () => NewDataForListener
+        private readonly getLastReceiveFromServer: () => NewDataForListener
     ) {}
 }
 
 /** @internal */
 export class SuperListeningTo {
-    lastReceivementFromServer: NewDataForListener;
+    lastReceiveFromServer: NewDataForListener;
     public readonly listeningImplementationArray: Array<Listening> = [];
 
     constructor(
@@ -106,9 +90,9 @@ export class SuperListeningTo {
             if (this.listeningImplementationArray.length === 0) {
                 this.deleteMe();
             }
-        }, () => this.lastReceivementFromServer);
-        if (this.lastReceivementFromServer != null)
-            child._props.listener(this.lastReceivementFromServer);
+        }, () => this.lastReceiveFromServer);
+        if (this.lastReceiveFromServer != null)
+            child._props.listener(this.lastReceiveFromServer);
 
         this.listeningImplementationArray.push(child);
 
@@ -125,7 +109,10 @@ export class Middleware {
     private _clientId: string | number;
     readonly internal:Internal;
     // private onFailToReceiveConnectionConfigurationFromServer: (reason:DisconnectionReason) => void;
-    onReceiveConnectionConfigurationFromServer:(connectionConfiguration:ConfigureConnectionResponseCli) => void;
+    connectionAttempt: {
+        resolve: (connectionConfiguration:ConfigureConnectionResponseCli) => void,
+        reject: (error) => void
+    };
     readonly lastMessagesFromServer: Array<LastServerMessage> = [];
     readonly wsChannel = new AbstractWsChannel(this);
 
@@ -149,7 +136,7 @@ export class Middleware {
 
     connect(ownClientId, headers): Promise<ConfigureConnectionResponseCli> {
         return new Promise(async (resolve, reject) => {
-            this.onReceiveConnectionConfigurationFromServer = resolve;
+            this.connectionAttempt = { resolve: resolve, reject: reject, };
             await this.wsChannel.configureNewConnection(ownClientId,headers);
         });
     }

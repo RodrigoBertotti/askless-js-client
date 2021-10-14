@@ -1,9 +1,6 @@
 import {ClientReceived} from "./ClientReceived";
-import {ConfigureConnectionResponseCli, ServerConfirmReceiptCli} from "../../../data/response/ResponseCli";
-import {ConnectionConfiguration} from "../../../data/response/ConnectionConfiguration";
-import {CLIENT_LIBRARY_VERSION_CODE, CLIENT_LIBRARY_VERSION_NAME} from "../../../constants";
-import {assert} from "../../../utils";
 import {Middleware} from "../../index";
+import {ServerConfirmReceiptCli} from "../../../data/response/ResponseCli";
 
 /** @internal */
 export class ClientReceivedServerConfirmReceipt extends ClientReceived {
