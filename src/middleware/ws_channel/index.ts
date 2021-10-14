@@ -185,12 +185,16 @@ export class AbstractWsChannel {
                         this._disconnectAndClearOnDone = () => {};
 
                         if (this.middleware.internal.disconnectionReason?.canReconnect == false) {
-                            this.onReceiveConnectionConfigurationFromServer(Object.assign(new ConfigureConnectionResponseCli(null,null), {
-                                error: new ResponseError({
-                                    code: this.middleware.internal.disconnectionReason.code,
-                                    description: 'function grantConnection (server side) didn\'t allow the connection',
-                                })
-                            }))
+                            if(this.onReceiveConnectionConfigurationFromServer) {
+                                this.onReceiveConnectionConfigurationFromServer(Object.assign(new ConfigureConnectionResponseCli(null, null), {
+                                    error: new ResponseError({
+                                        code: this.middleware.internal.disconnectionReason.code,
+                                        description: 'function grantConnection (server side) didn\'t allow the connection',
+                                    })
+                                }))
+                            }else{
+                                this.logger('this.onReceiveConnectionConfigurationFromServer is null', "debug");
+                            }
                             return;
                         }
 
