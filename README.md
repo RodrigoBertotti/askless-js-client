@@ -1,3 +1,11 @@
+# DISCONTINUED
+askless-js-client is discontinued, 
+if is useful for you, you can show interest in a continuation of Askless JS Client by sending me an email: rodrigo@wisetap.com
+
+For Flutter Devs, check the Flutter Client of Askless here: [askless-flutter-client](https://github.com/RodrigoBertotti/askless-flutter-client)
+
+---
+
 # Askless - JavaScript client
 
 :checkered_flag: [Português (Portuguese)](README_PORTUGUES.md)
