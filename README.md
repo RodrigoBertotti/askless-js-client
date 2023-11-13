@@ -8,8 +8,6 @@ For Flutter Devs, check the Flutter Client of Askless here: [askless-flutter-cli
 
 # Askless - JavaScript client
 
-:checkered_flag: [Português (Portuguese)](README_PORTUGUES.md)
-
 JavaScript client of Askless framework, which facilitates building realtime servers for JavaScript and Flutter Apps
 allowing to:
 
